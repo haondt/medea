@@ -1,4 +1,5 @@
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
 
 #[derive(Parser, Debug)]
 #[command(about, version)]
@@ -17,6 +18,7 @@ impl BaseArgs {
     }
 }
 
+#[enum_dispatch]
 trait Runnable {
     fn run(&self, base_args: &BaseArgs) -> String;
 }
@@ -40,6 +42,7 @@ impl Runnable for UuidArgs {
 
 
 
+
 // foo: TODO
 
 #[derive(Parser, Debug)]
@@ -54,17 +57,18 @@ impl Runnable for FooArgs {
 ///////////////////////////////////////////////////
 
 #[derive(Parser, Debug)]
+#[enum_dispatch(Runnable)]
 pub enum ArgsEnum {
     Uuid(UuidArgs),
     Foo(FooArgs)
 }
 
+
+
 fn run() -> Result<(), Box<dyn std::error::Error>>  {
     let args = BaseArgs::parse();
-    match &args.command {
-        ArgsEnum::Uuid(c_args) => { println!("{}", c_args.run(&args)); }
-        ArgsEnum::Foo(c_args) => { println!("{}", c_args.run(&args)); }
-    }
+    let result = &args.command.run(&args);
+    println!("{}", result);
     Ok(())
 }
 

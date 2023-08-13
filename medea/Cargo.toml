@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.21", features = ["derive"] }
+enum_dispatch = "0.3.12"
 libc = "0.2.147"
