@@ -5,7 +5,7 @@ use super::super::{Runnable, BaseArgs};
 pub struct FooArgs { }
 
 impl Runnable for FooArgs {
-    fn run(&self, _: &BaseArgs) -> String {
-        return "Hello from foo command!".to_string();
+    fn run(&self, _: &BaseArgs) -> Result<String,Box<dyn std::error::Error>> {
+        return Ok("Hello from foo command!".to_string());
     }
 }
