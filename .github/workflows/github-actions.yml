@@ -58,6 +58,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./medea/target/$ {{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+          asset_path: ./medea/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
           asset_name: "${{ matrix.platform.os_name }} ${{ matrix.platform.bin }}"
           asset_content_type: application/octet-stream
