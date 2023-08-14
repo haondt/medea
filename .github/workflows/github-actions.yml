@@ -35,8 +35,8 @@ jobs:
           override: true
 
       - uses: actions-rs/cargo@v1
-        working-directory: medea
         with:
+          cwd: medea
           use-cross: true
           command: build
           args: --release --locked --target ${{ matrix.platform.target }}
