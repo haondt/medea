@@ -44,7 +44,7 @@ jobs:
           cd medea
           cross build --release --locked --target ${{ matrix.platform.target }}
       - name: compress binary
-        run: tar -czvf medea-${{ matrix.plaform.os_name }}.tar.gz ./medea/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+        run: tar -czvf medea-${{ matrix.platform.os_name }}.tar.gz ./medea/target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
@@ -62,3 +62,4 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./medea-${{ matrix.platform.os_name }}.tar.gz
           asset_name: "media-${{ matrix.platform.os_name }}.tar.gz"
+          asset_content_type: application/gzip
