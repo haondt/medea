@@ -37,6 +37,7 @@ jobs:
       - run: pwd
       - run: |
           cargo install cross
+          cd medea
           cross build --release --locked --target x86_64-unknown-linux-gnu
       - uses: actions-rs/cargo@v1
         with:
