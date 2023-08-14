@@ -16,12 +16,12 @@ jobs:
           - os_name: 64-bit Linux
             target: x86_64-unknown-linux-gnu
             bin: medea
-          - os_name: 64-bit Windows
-            target: x86_64-pc-windows-msvc
-            bin: medea.exe
-          - os_name: 64-bit macOS
-            target: x86_64-apple-darwin
-            bin: medea
+          # - os_name: 64-bit Windows
+          #   target: x86_64-pc-windows-msvc
+          #   bin: medea.exe
+          # - os_name: 64-bit macOS
+          #   target: x86_64-apple-darwin
+          #   bin: medea
     steps:
       - uses: actions/checkout@v3
 
@@ -35,6 +35,7 @@ jobs:
           override: true
 
       - uses: actions-rs/cargo@v1
+        working-directory: medea
         with:
           use-cross: true
           command: build
