@@ -14,3 +14,6 @@ mac_address = "1.1.5"
 uuid = { version = "1.4.1", features = [
     "v4", "fast-rng", "v1", "std"
     ] }
+
+[profile.release]
+strip = true
