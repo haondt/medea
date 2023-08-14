@@ -1,9 +1,9 @@
 name: Build and Release
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [published]
+    tags: ['v*.*.*']
 
 jobs:
   release:
@@ -18,14 +18,19 @@ jobs:
           - os_name: linux-x86_64
             target: x86_64-unknown-linux-gnu
             bin: medea
-          # - os_name: windows-x86_64
-          #   target: x86_64-pc-windows-msvc
-          #   bin: medea.exe
+          - os_name: windows-x86_64
+            target: x86_64-pc-windows-msvc
+            bin: medea.exe
           # - os_name: osx-x86_64
           #   target: x86_64-apple-darwin
           #   bin: medea
     steps:
       - uses: actions/checkout@v3
+      - name: Get release
+        id: get_release
+        uses: bruceadams/get-release@v1.3.2brucedams
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache cargo & target directories
         uses: Swatinem/rust-cache@v2
@@ -35,8 +40,6 @@ jobs:
           toolchain: stable
           target: ${{ matrix.platform.target }}
           override: true
-      - run: tree
-      - run: pwd
       - name: install cross
         run: cargo install cross
       - name: build project
@@ -47,21 +50,13 @@ jobs:
         run: |
           cd ./medea/target/${{ matrix.platform.target }}/release
           tar -czvf medea-${{ matrix.platform.os_name }}.tar.gz ${{ matrix.platform.bin }}
-      - name: Create release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
 
       - name: Upload binary
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: ./medea/target/${{ matrix.platform.target }}/release/medea-${{ matrix.platform.os_name }}.tar.gz
           asset_name: "medea-${{ matrix.platform.os_name }}.tar.gz"
           asset_content_type: application/gzip
