@@ -51,6 +51,7 @@ jobs:
           cd medea
           cross build --release --locked --target ${{ matrix.platform.target }}
       - name: compress binary
+        shell: bash
         run: |
           cd ./medea/target/${{ matrix.platform.target }}/release
           if [[ "${{ matrix.platform.os }}" == "windows-latest" ]]; then
