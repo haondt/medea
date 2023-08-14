@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions-rs/cargo@v1
         with:
-          cwd: medea
+          cwd: medea/
           use-cross: true
           command: build
           args: --release --locked --target ${{ matrix.platform.target }}
