@@ -6,55 +6,55 @@ on:
       - main
 
 jobs:
-  build:
+  release:
+    name: Release - ${{ matrix.platform.os_name }}
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os_name: 64-bit Linux
+            target: x86_64-unknown-linux-gnu
+            bin: medea
+          - os_name: 64-bit Windows
+            target: x86_64-pc-windows-msvc
+            bin: medea.exe
+          - os_name: 64-bit macOS
+            target: x86_64-apple-darwin
+            bin: medea
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-    - name: Set up Rust
-      uses: actions/setup-rust@v2
-      with:
-        rust-version: stable
+      - name: Cache cargo & target directories
+        uses: Swatinem/rust-cache@v2
 
-    - name: Build for Linux
-      run: cargo build --release --target x86_64-unknown-linux-gnu
-      env:
-        PKG_CONFIG_ALLOW_CROSS: 1
-        PKG_CONFIG_PATH: /usr/local/x86_64-linux-gnu/lib/pkgconfig
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.platform.target }}
+          override: true
 
-    - name: Build for Windows
-      run: cargo build --release --target x86_64-pc-windows-gnu
-      env:
-        PKG_CONFIG_ALLOW_CROSS: 1
-        PKG_CONFIG_PATH: /usr/local/x86_64-w64-mingw32/lib/pkgconfig
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --locked --target ${{ matrix.platform.target }}
 
-    - name: Create release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ github.run_number }}
-        release_name: Release v${{ github.run_number }}
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
 
-    - name: Upload Linux binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./target/x86_64-unknown-linux-gnu/release/medea
-        asset_name: medea-linux
-        asset_content_type: application/octet-stream
-
-    - name: Upload Windows binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./target/x86_64-pc-windows-gnu/release/medea.exe
-        asset_name: medea-windows.exe
-        asset_content_type: application/octet-stream
+      - name: Upload binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/$ {{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+          asset_name: "${{ matrix.platform.os_name }} ${{ matrix.platform.bin }}"
+          asset_content_type: application/octet-stream
