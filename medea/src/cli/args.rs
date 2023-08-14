@@ -8,6 +8,9 @@ pub struct BaseArgs {
     #[arg(long, default_value="false")]
     pub colors: bool,
 
+    #[arg(long, default_value="false")]
+    pub trim: bool,
+
     #[command(subcommand)]
     pub command: ArgsEnum,
 }
@@ -16,7 +19,11 @@ pub struct BaseArgs {
 pub fn run() -> Result<(), Box<dyn std::error::Error>>  {
     let args = BaseArgs::parse();
     let result = &args.command.run(&args)?;
-    print!("{}", result);
+    if args.trim {
+        print!("{}", result);
+    } else {
+        println!("{}", result);
+    }
     Ok(())
 }
 

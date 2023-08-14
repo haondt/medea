@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use clap::Parser;
 use uuid::Uuid;
 use mac_address::get_mac_address;
@@ -43,27 +45,39 @@ impl std::fmt::Display for UuidError {
 
 impl std::error::Error for UuidError {}
 
-fn get_uuid(args: &UuidArgs) -> Result<Uuid, UuidError> {
-    match args.version.as_str() {
-        "1" => {
-            let ma = get_mac_address()?.ok_or(UuidError::MacAddressNotFound)?;
-            return Ok(Uuid::now_v1(&ma.bytes()));
+
+impl UuidArgs {
+    fn get_uuid(&self) -> Result<Uuid, UuidError> {
+        match self.version.as_str() {
+            "1" => {
+                let ma = get_mac_address()?.ok_or(UuidError::MacAddressNotFound)?;
+                return Ok(Uuid::now_v1(&ma.bytes()));
+            }
+            "4" => {
+                return Ok(Uuid::new_v4());
+            }
+            _ => Err(UuidError::InvalidVersion)
         }
-        "4" => {
-            return Ok(Uuid::new_v4());
-        }
-        _ => Err(UuidError::InvalidVersion)
     }
+
+    fn get_uuid_string(&self) -> Result<String, Box<dyn Error>>{
+        let uuid = self.get_uuid()?;
+        let mut t = if self.no_hyphens { uuid.simple().to_string() } else { uuid.to_string() };
+        if self.upper { t = t.to_uppercase(); }
+        return Ok(t);
+    }
+
 }
+
 impl Runnable for UuidArgs {
-    fn run(&self, _: &BaseArgs) -> Result<String, Box<dyn std::error::Error>> {
-        let mut s = String::new();
-        for _ in 0..self.count {
-            let uuid = get_uuid(&self)?;
-            let mut t = if self.no_hyphens { uuid.simple().to_string() } else { uuid.to_string() };
-            if self.upper { t = t.to_uppercase(); }
-            s += &(t + "\n");
+    fn run(&self, _: &BaseArgs) -> Result<String, Box<dyn Error>> {
+        if self.count == 0 { return Ok(String::new()); }
+
+        let mut s = self.get_uuid_string()?;
+        for _ in 0..(self.count - 1) {
+            s += &format!("\n{}", &self.get_uuid_string()?);
         }
         return Ok(s);
     }
+
 }
