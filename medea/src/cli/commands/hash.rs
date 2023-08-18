@@ -1,6 +1,5 @@
 use std::{
     error::Error,
-    io::{self, Read},
 };
 
 use super::super::{BaseArgs, Runnable};
@@ -64,9 +63,8 @@ impl<T: Mac + OutputSizeUser + Clone> DynHmacDigest for T {
 
 
 impl Runnable for HashArgs {
-    fn run(&self, _: &BaseArgs) -> Result<String, Box<dyn Error>> {
-        let mut message = String::new();
-        let _ = io::stdin().read_to_string(&mut message);
+    fn run(&self, _: &BaseArgs, get_input:impl Fn() -> String) -> Result<String,Box<dyn Error>> {
+        let message = get_input();
         let data = message.as_bytes();
         let res: Vec<u8>;
 

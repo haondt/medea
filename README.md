@@ -29,6 +29,14 @@ echo -n 'my data' | medea hash -a sha256 --hmac 'my secret'
 medea uuid -uc 5
 ```
 
+## Tests
+
+Run tests with
+
+```shell
+cargo test
+```
+
 ## License
 
 See [LICENSE](./LICENSE)
