@@ -6,7 +6,7 @@ use std::{
 use super::super::{BaseArgs, Runnable};
 use base64ct::{Base64, Encoding};
 use clap::{Parser, ValueEnum};
-use digest::{OutputSizeUser};
+use digest::OutputSizeUser;
 use hmac::{Hmac, Mac};
 use sha1::Sha1;
 
