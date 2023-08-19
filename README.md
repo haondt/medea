@@ -19,7 +19,7 @@ Alternatively, you can clone the repository and build with Cargo.
 
 ## Usage
 
-The basic usage is `medea [command] --options`. See `medea --help` or `medea [command] --help` for more details. Here are some example usages:
+The basic usage is `medea [command] --options`. See `medea help` or `medea help [command] help` for more details. Here are some example usages:
 
 ```shell
 # generate an HS256 hash

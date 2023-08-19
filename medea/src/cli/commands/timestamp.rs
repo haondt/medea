@@ -61,7 +61,8 @@ pub struct TimeStampArgs {
         short,
         long,
         default_value = "iso",
-        long_help = "Standard format for output. Can be used instead of `--template-string`"
+        long_help = "Standard format for output. Can be used instead of `--template-string`",
+        conflicts_with = "template_string"
     )]
     format: Format,
 }
@@ -74,6 +75,24 @@ enum Format {
     Time,
     Datetime,
 }
+
+#[derive(Debug)]
+enum TimestampError {
+    ParseError(chrono::format::ParseError),
+}
+impl From<chrono::format::ParseError> for TimestampError {
+    fn from(err: chrono::format::ParseError) -> Self {
+        TimestampError::ParseError(err)
+    }
+}
+impl std::fmt::Display for TimestampError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TimestampError::ParseError(e) => write!(f, "could not parse input as a naive datetime: {}", e)
+        }
+    }
+}
+impl Error for TimestampError {}
 
 impl TimeStampArgs {
     const NUMERIC_TIMESTAMP_PATTERN: &str = r"^[0-9]+$";
@@ -102,7 +121,7 @@ impl TimeStampArgs {
                             offset_ts.with_timezone(&Utc)
                         }
                         None => {
-                            let naive_date = message.parse::<NaiveDateTime>()?;
+                            let naive_date = message.parse::<NaiveDateTime>().map_err(|e| TimestampError::ParseError(e))?;
                             parsed_input_timezone
                                 .from_local_datetime(&naive_date)
                                 .unwrap()
@@ -121,13 +140,17 @@ impl TimeStampArgs {
             }
         }
 
-        let format_str = match self.format {
+        let mut format_str = match self.format {
             Format::Unix => "%s",
             Format::Iso => "%+",
             Format::Date => "%x",
             Format::Time => "%X",
             Format::Datetime => "%c",
         };
+
+        if self.template_string.is_some() {
+            format_str = self.template_string.as_ref().unwrap().as_str();
+        }
 
         let output = match &self.output_timezone {
             Some(t) => ts
@@ -212,6 +235,24 @@ mod tests {
 
         let ts = run_with_input(sut, input)?;
         assert_eq!(ts, "2009-02-13T23:31:30+00:00");
+        Ok(())
+    }
+
+    #[test]
+    fn will_read_input_with_timezone() -> Result<(), Box<dyn Error>> {
+        let sut = TimeStampArgs {
+            now: false,
+            input_timezone: Some(String::from("America/Toronto")),
+            output_timezone: None,
+            format: super::Format::Iso,
+            template_string: None,
+            input_template_string: None,
+        };
+
+        let input = String::from("2023-08-19T12:07:07");
+
+        let ts = run_with_input(sut, input)?;
+        assert_eq!(ts, "2023-08-19T16:07:07+00:00");
         Ok(())
     }
 }

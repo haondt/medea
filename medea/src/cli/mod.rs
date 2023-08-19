@@ -11,7 +11,7 @@ use commands::hash::HashArgs;
 use commands::timestamp::TimeStampArgs;
 
 #[derive(Parser, Debug)]
-#[enum_dispatch(Runnable)]
+#[enum_dispatch(Runnable,)]
 pub enum ArgsEnum {
     Uuid(UuidArgs),
     Hash(HashArgs),

@@ -1,6 +1,4 @@
-use std::{
-    error::Error,
-};
+use std::error::Error;
 
 use super::super::{BaseArgs, Runnable};
 use base64ct::{Base64, Encoding};
