@@ -181,5 +181,44 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn will_convert_to_unix_time() -> Result<(), Box<dyn Error>> {
+        let sut = TimeStampArgs {
+            timezone: None,
+            format: super::Format::Unix,
+            input: Some(String::from("2009-02-13T23:31:30+03:00")),
+        };
+
+        let ts = run(sut)?;
+        assert_eq!(ts, "1234557090");
+        Ok(())
+    }
+
+    #[test]
+    fn will_convert_with_short_timezone() -> Result<(), Box<dyn Error>> {
+        let sut = TimeStampArgs {
+            timezone: Some(String::from("EST")),
+            format: super::Format::Iso,
+            input: Some(String::from("2009-02-13T23:31:30+02:00")),
+        };
+
+        let ts = run(sut)?;
+        assert_eq!(ts, "2009-02-13T16:31:30-05:00");
+        Ok(())
+    }
+
+    #[test]
+    fn will_convert_with_long_timezone() -> Result<(), Box<dyn Error>> {
+        let sut = TimeStampArgs {
+            timezone: Some(String::from("America/Toronto")),
+            format: super::Format::Iso,
+            input: Some(String::from("2009-02-13T23:31:30+02:00")),
+        };
+
+        let ts = run(sut)?;
+        assert_eq!(ts, "2009-02-13T16:31:30-05:00");
+        Ok(())
+    }
+
 
 }
