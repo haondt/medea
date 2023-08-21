@@ -1,3 +1,5 @@
+use std::io::{self, Read};
+
 use clap::Parser;
 use enum_dispatch::enum_dispatch;
 use super::ArgsEnum;
@@ -15,10 +17,15 @@ pub struct BaseArgs {
     pub command: ArgsEnum,
 }
 
+fn get_input_from_stdin() -> String {
+    let mut message = String::new();
+    let _ = io::stdin().read_to_string(&mut message);
+    return message;
+}
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>>  {
     let args = BaseArgs::parse();
-    let result = &args.command.run(&args)?;
+    let result = &args.command.run(&args, get_input_from_stdin)?;
     if args.trim {
         print!("{}", result);
     } else {
@@ -30,5 +37,5 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>>  {
 
 #[enum_dispatch]
 pub trait Runnable {
-    fn run(&self, base_args: &BaseArgs) -> Result<String, Box<dyn std::error::Error>>;
+    fn run(&self, base_args: &BaseArgs, get_input: impl Fn() -> String) -> Result<String, Box<dyn std::error::Error>>;
 }

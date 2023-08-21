@@ -70,7 +70,7 @@ impl UuidArgs {
 }
 
 impl Runnable for UuidArgs {
-    fn run(&self, _: &BaseArgs) -> Result<String, Box<dyn Error>> {
+    fn run(&self, _: &BaseArgs, _:impl Fn() -> String) -> Result<String,Box<dyn Error>> {
         if self.count == 0 { return Ok(String::new()); }
 
         let mut s = self.get_uuid_string()?;
@@ -79,5 +79,4 @@ impl Runnable for UuidArgs {
         }
         return Ok(s);
     }
-
 }
