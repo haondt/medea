@@ -27,6 +27,9 @@ echo -n 'my data' | medea hash -a sha256 --hmac 'my secret'
 
 # generate some uuids
 medea uuid -uc 5
+
+# convert timestamps
+medea ts --format iso -z America/Los_Angeles 1678742400
 ```
 
 ## Tests
