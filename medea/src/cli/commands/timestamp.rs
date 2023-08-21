@@ -10,29 +10,42 @@ use regex::Regex;
 
 #[derive(Parser, Debug, Clone)]
 #[command(
-    name = "the timestamper",
     about = "Parse and convert timestamps",
     after_help = "See `medea help timestamp` for details",
     long_about = indoc!{"
         Read a timestamp and convert it to the desired format.
-        Both string and epoch (unix) timestamps are supported as input, and the type will be parsed automatically.\
+        Both iso8601 and unix (epoch) timestamps are supported
+        as input, and the type will be parsed automatically.
         Omit the input to use the current time.
     "},
     after_long_help = indoc!{r#"
         Examples:
+            # convert iso8601 to epoch
+            $ medea ts -f unix 2023-08-20T15:30:00Z
+            1692545400
 
-            $ medea ts -n --format=8601
+            # convert epoch to iso8601 with timezone
+            $ medea ts -f iso -z America/Los_Angeles 1678742400
+            2023-03-13T14:20:00-07:00
+
+            # get current time as epoch
+            $ medea ts -f unix
+            1692580941
 
     "#}
 )]
 pub struct TimeStampArgs {
 
     #[arg(
-        long_help = "Input timestamp. Accepts unix (epoch) or iso8601 format. \
-            If omitted, will default to now.",
-        // required = false
+        help = "Input timestamp",
+        long_help = indoc!{"
+            Input timestamp. Accepts unix (epoch)
+            or iso8601 format. If omitted, will
+            default to current time.
+        "},
+        required = false
     )]
-    input: Option<String>,
+    timestamp: Option<String>,
 
     #[arg(short = 'z', long, long_help = "Timezone of the output")]
     timezone: Option<String>,
@@ -49,7 +62,7 @@ pub struct TimeStampArgs {
 #[derive(ValueEnum, Debug, Clone)]
 enum Format {
     Iso,
-    Unix,
+    Unix
 }
 
 #[derive(Debug)]
@@ -84,7 +97,7 @@ impl TimeStampArgs {
         _: &BaseArgs,
         _: impl Fn() -> String,
     ) -> Result<String, Box<dyn Error>> {
-        let ts = match &self.input {
+        let ts = match &self.timestamp {
             Some(input_string) => {
                 let regex = Regex::new(Self::NUMERIC_TIMESTAMP_PATTERN)?;
                 if regex.is_match(&input_string) {
@@ -160,7 +173,7 @@ mod tests {
         let sut = TimeStampArgs {
             timezone: None,
             format: super::Format::Iso,
-            input: None,
+            timestamp: None,
         };
 
         let ts = run(sut)?;
@@ -173,7 +186,7 @@ mod tests {
         let sut = TimeStampArgs {
             timezone: None,
             format: super::Format::Iso,
-            input: Some(String::from("1234567890")),
+            timestamp: Some(String::from("1234567890")),
         };
 
         let ts = run(sut)?;
@@ -186,7 +199,7 @@ mod tests {
         let sut = TimeStampArgs {
             timezone: None,
             format: super::Format::Unix,
-            input: Some(String::from("2009-02-13T23:31:30+03:00")),
+            timestamp: Some(String::from("2009-02-13T23:31:30+03:00")),
         };
 
         let ts = run(sut)?;
@@ -199,7 +212,7 @@ mod tests {
         let sut = TimeStampArgs {
             timezone: Some(String::from("EST")),
             format: super::Format::Iso,
-            input: Some(String::from("2009-02-13T23:31:30+02:00")),
+            timestamp: Some(String::from("2009-02-13T23:31:30+02:00")),
         };
 
         let ts = run(sut)?;
@@ -212,7 +225,7 @@ mod tests {
         let sut = TimeStampArgs {
             timezone: Some(String::from("America/Toronto")),
             format: super::Format::Iso,
-            input: Some(String::from("2009-02-13T23:31:30+02:00")),
+            timestamp: Some(String::from("2009-02-13T23:31:30+02:00")),
         };
 
         let ts = run(sut)?;
