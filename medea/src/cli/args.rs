@@ -7,10 +7,7 @@ use super::ArgsEnum;
 #[derive(Parser, Debug)]
 #[command(about, version)]
 pub struct BaseArgs {
-    #[arg(long, default_value="false")]
-    pub colors: bool,
-
-    #[arg(long, default_value="false")]
+    #[arg(long, help = "Trim newline from end of output", default_value="false")]
     pub trim: bool,
 
     #[command(subcommand)]

@@ -154,7 +154,6 @@ mod tests {
 
     fn base_args(tsa: TimeStampArgs) -> BaseArgs {
         BaseArgs {
-            colors: false,
             trim: false,
             command: ArgsEnum::Timestamp(tsa),
         }

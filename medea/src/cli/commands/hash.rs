@@ -9,24 +9,46 @@ use sha1::Sha1;
 
 use md5::{digest::DynDigest, Md5};
 use sha2::{Sha256, Sha512};
+use indoc::indoc;
 
 type HmacSha256 = Hmac<Sha256>;
 type HmacSha512 = Hmac<Sha512>;
 type HmacSha1 = Hmac<Sha1>;
 type HmacMd5 = Hmac<Md5>;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
+#[command(
+    about = "Generate cryptographic hashes",
+    after_help = "See `medea help hash` for details",
+    long_about = indoc!{"
+        Read data and generate a hash value, optionally using
+        an hmac key.
+    "},
+    after_long_help = indoc!{r#"
+        Examples:
+            # generate an md5 hash
+            $ medea hash "this is some data"
+            1463f25d10e363181d686d2484a9eab6
+
+            # generate a sha256 hash using file contents
+            $ medea hash "$(cat data.txt)" --hmac "$(cat secret.txt)" -ua sha256
+            147933218AAABC0B8B10A2B3A5C34684C8D94341BCF10A4736DC7270F7741851
+    "#}
+)]
 pub struct HashArgs {
-    #[arg(short, long, value_enum, default_value = "hex")]
+    #[arg(help = "Data to be hashed")]
+    data: String,
+
+    #[arg(short, long, help = "Output format", value_enum, default_value = "hex")]
     format: Format,
 
-    #[arg(short, long, value_enum, default_value = "md5")]
+    #[arg(short, long, help = "Hashing algorithm", value_enum, default_value = "md5")]
     algorithm: Algorithm,
 
-    #[arg(long)]
+    #[arg(long, help = "Key for generating hmac hashes")]
     hmac: Option<String>,
 
-    #[arg(short, long, default_value = "false")]
+    #[arg(short, long, help = "Use upper case characters for hex output", default_value = "false")]
     upper: bool,
 }
 
@@ -59,17 +81,17 @@ impl<T: Mac + OutputSizeUser + Clone> DynHmacDigest for T {
     }
 }
 
-
 impl Runnable for HashArgs {
-    fn run(&self, _: &BaseArgs, get_input:impl Fn() -> String) -> Result<String,Box<dyn Error>> {
-        let message = get_input();
-        let data = message.as_bytes();
+    fn run(&self, _: &BaseArgs, _: impl Fn() -> String) -> Result<String, Box<dyn Error>> {
+        let data = self.data.as_bytes();
         let res: Vec<u8>;
 
         if self.hmac.is_some() {
             let key = self.hmac.clone().unwrap();
             let mut alg = match &self.algorithm {
-                Algorithm::MD5 => Box::new(HmacMd5::new_from_slice(key.as_bytes())?) as Box<dyn DynHmacDigest>,
+                Algorithm::MD5 => {
+                    Box::new(HmacMd5::new_from_slice(key.as_bytes())?) as Box<dyn DynHmacDigest>
+                }
                 Algorithm::SHA1 => Box::new(HmacSha1::new_from_slice(key.as_bytes())?),
                 Algorithm::SHA256 => Box::new(HmacSha256::new_from_slice(key.as_bytes())?),
                 Algorithm::SHA512 => Box::new(HmacSha512::new_from_slice(key.as_bytes())?),
@@ -98,5 +120,61 @@ impl Runnable for HashArgs {
         };
 
         Ok(hash)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cli::{
+        args::{BaseArgs, Runnable},
+        ArgsEnum,
+    };
+
+    use super::{Algorithm, Format, HashArgs};
+
+    fn base_args(tsa: HashArgs) -> BaseArgs {
+        BaseArgs {
+            trim: false,
+            command: ArgsEnum::Hash(tsa),
+        }
+    }
+
+    fn spoof_input(input: String) -> Box<dyn Fn() -> String> {
+        return Box::new(move || -> String { return input.clone() });
+    }
+
+    #[test]
+    fn will_create_base_64_hash() {
+        let sut = HashArgs {
+            algorithm: Algorithm::MD5,
+            format: Format::B64,
+            data: String::from("foo"),
+            hmac: None,
+            upper: false,
+        };
+
+        let hash = sut
+            .run(&base_args(sut.clone()), spoof_input(String::new()))
+            .unwrap();
+        assert_eq!(hash, "rL0Y20zC+Fzt72VPzMSk2A==");
+    }
+
+    #[test]
+    fn will_create_uppercase_hex_hmac_hash() {
+        let sut = HashArgs {
+            algorithm: Algorithm::SHA256,
+            format: Format::Hex,
+            data: String::from("foo"),
+            hmac: Some(String::from("bar")),
+            upper: true,
+        };
+
+        let hash = sut
+            .run(&base_args(sut.clone()), spoof_input(String::new()))
+            .unwrap();
+        assert_eq!(
+            hash,
+            "147933218AAABC0B8B10A2B3A5C34684C8D94341BCF10A4736DC7270F7741851"
+        );
     }
 }
