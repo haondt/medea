@@ -8,6 +8,7 @@ medea is a command-line developers toolbox, written in Rust. Similar to projects
   - UUID
 - Text Processing
   - Hash generation
+  - Timestamp conversion
 
 ## Installation
 
@@ -23,7 +24,7 @@ The basic usage is `medea [command] --options`. See `medea help` or `medea help 
 
 ```shell
 # generate an HS256 hash
-echo -n 'my data' | medea hash -a sha256 --hmac 'my secret'
+medea hash -a sha256 --hmac 'my secret' 'my data'
 
 # generate some uuids
 medea uuid -uc 5
