@@ -9,6 +9,7 @@ use args::{Runnable, BaseArgs};
 use commands::uuid::UuidArgs;
 use commands::hash::HashArgs;
 use commands::timestamp::TimeStampArgs;
+use commands::random::RandomArgs;
 
 #[derive(Parser, Debug)]
 #[enum_dispatch(Runnable,)]
@@ -17,6 +18,8 @@ pub enum ArgsEnum {
     Hash(HashArgs),
     #[command(visible_alias="ts")]
     Timestamp(TimeStampArgs),
+    #[command(visible_alias="rnd")]
+    Random(RandomArgs)
 }
 
 pub use args::run;

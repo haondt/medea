@@ -7,7 +7,7 @@ use super::super::{Runnable, BaseArgs};
 
 #[derive(Parser, Debug)]
 pub struct UuidArgs {
-    #[arg(short, long, default_value="1")]
+    #[arg(default_value="1")]
     count: u32,
 
     #[arg(short, long, default_value="false")]
