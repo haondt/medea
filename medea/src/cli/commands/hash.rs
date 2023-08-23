@@ -132,10 +132,10 @@ mod tests {
 
     use super::{Algorithm, Format, HashArgs};
 
-    fn base_args(tsa: HashArgs) -> BaseArgs {
+    fn base_args(a: HashArgs) -> BaseArgs {
         BaseArgs {
             trim: false,
-            command: ArgsEnum::Hash(tsa),
+            command: ArgsEnum::Hash(a),
         }
     }
 

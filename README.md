@@ -20,17 +20,20 @@ Alternatively, you can clone the repository and build with Cargo.
 
 ## Usage
 
-The basic usage is `medea [command] --options`. See `medea help` or `medea help [command] help` for more details. Here are some example usages:
+The basic usage is `medea [command] <options>`. See `medea help` or `medea help [command]` for more details. Here are some example usages:
 
 ```shell
 # generate an HS256 hash
 medea hash -a sha256 --hmac 'my secret' 'my data'
 
 # generate some uuids
-medea uuid -uc 5
+medea uuid -u 5
 
 # convert timestamps
 medea ts --format iso -z America/Los_Angeles 1678742400
+
+# generate random data
+medea rnd -f hex 16
 ```
 
 ## Tests
