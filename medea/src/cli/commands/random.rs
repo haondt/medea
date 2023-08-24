@@ -1,4 +1,3 @@
-
 use super::super::{BaseArgs, Runnable};
 use clap::{Parser, ValueEnum};
 
@@ -23,10 +22,22 @@ use std::cmp::min;
 )]
 
 pub struct RandomArgs {
-    #[arg(short, long, help = "Output format", value_enum, default_value = "hex")]
-    format: Format,
+    #[arg(
+        short,
+        long,
+        help = "Output format",
+        value_enum,
+        default_value = "hex",
+        value_name = "FORMAT"
+    )]
+    to: Format,
 
-    #[arg(short, long, help = "Use upper case characters for hex output", default_value = "false")]
+    #[arg(
+        short,
+        long,
+        help = "Use upper case characters for hex output",
+        default_value = "false"
+    )]
     upper: bool,
 
     #[arg(help = "Number of bytes to generate")]
@@ -45,7 +56,9 @@ impl RandomArgs {
 
         // pad to a multiple of 3
         let mut string_capacity = bytes.len();
-        if bytes.len() % 3 > 0 { string_capacity += 3 - bytes.len() % 3; }
+        if bytes.len() % 3 > 0 {
+            string_capacity += 3 - bytes.len() % 3;
+        }
 
         // multiply by 4/3, since each set of 3 bytes can fit into 4 b64 characters
         string_capacity /= 3;
@@ -70,7 +83,7 @@ impl RandomArgs {
             // convert those bytes into characters
             let num_padded_characters = 3 - input_chunk.len();
             let mask = 0x3F;
-            for j in 0..(4-num_padded_characters) {
+            for j in 0..(4 - num_padded_characters) {
                 // shift the corresponding 6-bit slice into the rightmost position
                 let shifted = value >> ((3 - j) * 6);
                 // mask off those 6 bits
@@ -84,7 +97,6 @@ impl RandomArgs {
                 result.push('=');
             }
 
-
             i += 3;
         }
 
@@ -94,7 +106,7 @@ impl RandomArgs {
     fn convert_to_hex(bytes: &[u8], uppercase: bool) -> String {
         let characters = match uppercase {
             true => "0123456789ABCDEF",
-            false => "0123456789abcdef"
+            false => "0123456789abcdef",
         };
 
         let mut result = String::with_capacity(bytes.len() * 2);
@@ -111,8 +123,6 @@ impl RandomArgs {
     }
 }
 
-
-
 impl Runnable for RandomArgs {
     fn run(
         &self,
@@ -121,9 +131,9 @@ impl Runnable for RandomArgs {
     ) -> Result<String, Box<dyn std::error::Error>> {
         let mut rng = rand::thread_rng();
         let random_bytes: Vec<u8> = (0..self.count_bytes).map(|_| rng.gen()).collect();
-        let output = match self.format {
+        let output = match self.to {
             Format::B64 => Self::convert_to_base_64(&random_bytes),
-            Format::Hex => Self::convert_to_hex(&random_bytes, self.upper)
+            Format::Hex => Self::convert_to_hex(&random_bytes, self.upper),
         };
         Ok(output)
     }
