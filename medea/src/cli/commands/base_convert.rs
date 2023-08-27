@@ -85,8 +85,52 @@ enum Format {
     Dec
 }
 
+trait Converter {
+    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8>;
+    fn to_string(&self, bytes: &Vec<u8>) -> Vec<String>;
+}
+
+struct AsciiConverter;
+impl Converter for AsciiConverter {
+    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
+        bytes.concat().chars().map(|c| c as u8).collect()
+    }
+
+    fn to_string(&self, bytes: &Vec<u8>) -> Vec<String> {
+        let s = bytes.iter().map(|&b| b as char).collect();
+        vec![s]
+    }
+}
+
+struct TodoConverter;
+impl Converter for TodoConverter {
+    fn to_bytes(&self, _bytes: &Vec<String>) -> Vec<u8> {
+        todo!()
+    }
+
+    fn to_string(&self, _bytes: &Vec<u8>) -> Vec<String> {
+        todo!()
+    }
+}
+
+impl BaseConvertArgs {
+    fn select_converter(&self, format: &Format) -> Box<dyn Converter> {
+        match format {
+            Format::Ascii => Box::new(AsciiConverter),
+            _ => Box::new(TodoConverter)
+        }
+    }
+}
+
 impl Runnable for BaseConvertArgs {
     fn run(&self, _: &BaseArgs, _:impl Fn() -> String) -> Result<String,Box<dyn std::error::Error>> {
-        return Ok(format!("{:?}", self));
+        let from_converter = self.select_converter(&self.from);
+        let to_converter = self.select_converter(&self.to);
+
+        let bytes = from_converter.to_bytes(&self.input);
+        let result = to_converter.to_string(&bytes);
+
+        println!("bytes: {:?}", bytes);
+        return Ok(format!("result: {:?}", result));
     }
 }
