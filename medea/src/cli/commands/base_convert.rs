@@ -17,6 +17,8 @@ Rules:
 - hex input does not care about casing
 */
 
+use std::error::Error;
+
 use clap::{Parser, ValueEnum};
 use indoc::indoc;
 
@@ -86,6 +88,8 @@ enum Format {
 }
 
 trait Converter {
+    fn validate_string(&self, bytes: &Vec<String>) -> Result<(), Box<dyn Error>>;
+    fn validate_bytes(&self, bytes: &Vec<u8>) -> Result<(), Box<dyn Error>>;
     fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8>;
     fn to_string(&self, bytes: &Vec<u8>) -> Vec<String>;
 }
@@ -100,6 +104,39 @@ impl Converter for AsciiConverter {
         let s = bytes.iter().map(|&b| b as char).collect();
         vec![s]
     }
+
+    fn validate_string(&self, bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    fn validate_bytes(&self, bytes: &Vec<u8>) -> Result<(), Box<dyn Error>> {
+        for b in bytes {
+            if b < &32 || b > &126 {
+                return Err("Badthing".into());
+            }
+        }
+        return Ok(());
+    }
+
+}
+
+struct BinConverter;
+impl Converter for BinConverter {
+    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
+        todo!()
+    }
+
+    fn to_string(&self, bytes: &Vec<u8>) -> Vec<String> {
+        todo!()
+    }
+
+    fn validate_string(&self, bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn validate_bytes(&self, bytes: &Vec<u8>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
 }
 
 struct TodoConverter;
@@ -109,6 +146,14 @@ impl Converter for TodoConverter {
     }
 
     fn to_string(&self, _bytes: &Vec<u8>) -> Vec<String> {
+        todo!()
+    }
+
+    fn validate_string(&self, _bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn validate_bytes(&self, _bytes: &Vec<u8>) -> Result<(), Box<dyn Error>> {
         todo!()
     }
 }
@@ -127,7 +172,9 @@ impl Runnable for BaseConvertArgs {
         let from_converter = self.select_converter(&self.from);
         let to_converter = self.select_converter(&self.to);
 
+        from_converter.validate_string(&self.input)?;
         let bytes = from_converter.to_bytes(&self.input);
+        to_converter.validate_bytes(&bytes)?;
         let result = to_converter.to_string(&bytes);
 
         println!("bytes: {:?}", bytes);
