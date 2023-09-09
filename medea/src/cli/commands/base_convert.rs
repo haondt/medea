@@ -367,4 +367,25 @@ mod bin_convert_test {
         let result = converter.to_string(&bytes, concat);
         assert_eq!(result, expected_result);
     }
+
+    #[rstest(bytes,
+        case(vec![String::from("1111111111111111111111111111111")]),
+        case(vec![String::from("0"), String::from("11111101")]),
+    )]
+    fn will_accept_string(bytes: Vec<String>) {
+        let converter = BinConverter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_ok());
+    }
+
+    #[rstest(bytes,
+        case(vec![String::from("1111111111111111111111111111111"), String::from("0")]),
+        case(vec![String::from("")]),
+        case(vec![String::from("0b0")]),
+    )]
+    fn will_reject_string(bytes: Vec<String>) {
+        let converter = BinConverter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_err());
+    }
 }
