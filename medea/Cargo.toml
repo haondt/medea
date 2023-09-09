@@ -21,6 +21,7 @@ mac_address = "1.1.5"
 md-5 = "0.10.5"
 rand = "0.8.5"
 regex = "1.9.3"
+rstest = "0.18.2"
 sha1 = "0.10.5"
 sha2 = "0.10.7"
 uuid = { version = "1.4.1", features = ["v4", "fast-rng", "v1", "std"] }
