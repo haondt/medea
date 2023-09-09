@@ -554,4 +554,55 @@ mod dec_convert_test {
         let result = converter.validate_string(&bytes);
         assert!(result.is_err());
     }
+
+    #[rstest(bytes, expected_result,
+        case(&[String::from("0")], &[0]),
+        case(&[String::from("1")], &[1]),
+        case(&[String::from("999")], &[3, 231]),
+        case(&[String::from("28391287459812749")], &[100, 221, 185, 187, 194, 21, 141]),
+    )]
+    fn will_read_from_single_string(bytes: &[String], expected_result: &[u8]) {
+        let converter = DecConverter{};
+        let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[String::from("0"), String::from("1")], &[0, 1]),
+        case(&[String::from("000000000000128"), String::from("255")], &[128, 255]),
+        case(&[String::from("181"), String::from("80"), String::from("246"), String::from("251"), String::from("7")], &[181, 80, 246, 251, 7]),
+    )]
+    fn will_read_from_multiple_string(bytes: &[String], expected_result: &[u8]) {
+        let converter = DecConverter{};
+        let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[0], &[String::from("0")]),
+        case(&[12], &[String::from("12")]),
+        case(&[255], &[String::from("255")]),
+    )]
+    fn will_convert_from_single_byte(bytes: &[u8], expected_result: &[String]) {
+        let converter = DecConverter{};
+        let result = converter.to_string(&bytes, true);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result, concat,
+        case(&[255, 0], &[String::from("65280")], true),
+        case(&[0, 255], &[String::from("255")], true),
+        case(&[12, 30], &[String::from("3102")], true),
+        case(&[11, 85, 15, 111, 183], &[String::from("48671715255")], true),
+
+        case(&[0, 255], &[String::from("0"), String::from("255")], false),
+        case(&[12, 30], &[String::from("12"), String::from("30")], false),
+        case(&[11, 85, 15, 111, 183], &[String::from("11"), String::from("85"), String::from("15"), String::from("111"), String::from("183")], false),
+    )]
+    fn will_convert_from_multiple_byte(bytes: &[u8], expected_result: &[String], concat: bool) {
+        let converter = DecConverter{};
+        let result = converter.to_string(&bytes, concat);
+        assert_eq!(result, expected_result);
+    }
+
 }
