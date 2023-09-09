@@ -56,7 +56,8 @@ pub struct BaseConvertArgs {
         long,
         help = "Input format",
         value_enum,
-        value_name = "FORMAT"
+        value_name = "FORMAT",
+        default_value = "dec"
     )]
     from: Format,
 
@@ -65,7 +66,8 @@ pub struct BaseConvertArgs {
         long,
         help = "Output format",
         value_enum,
-        value_name = "FORMAT"
+        value_name = "FORMAT",
+        default_value = "dec"
     )]
     to: Format,
 
@@ -132,7 +134,6 @@ impl BinConverter {
         byte
     }
 }
-
 impl Converter for BinConverter {
     fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
         if bytes.len() == 1 {
@@ -201,6 +202,142 @@ impl Converter for BinConverter {
     }
 }
 
+struct DecConverter;
+impl DecConverter {
+    fn divide_string_by_two(&self, input: &String) -> String {
+        let mut result =  String::new();
+        let mut remainder = 0u8;
+        for c in input.chars() {
+            let operand = c.to_digit(10).unwrap() as u8 + remainder * 10;
+            let result_digit = operand / 2;
+            result.push(char::from_digit(result_digit as u32, 10).unwrap());
+            remainder = operand - result_digit * 2;
+        }
+
+        if result.len() > 1 && result.chars().nth(0).unwrap() == '0' {
+            result = result.trim_start_matches('0').to_string();
+        }
+
+        return result;
+    }
+
+    fn decimal_string_to_binary_string(&self, input: &String) -> String {
+        if input.chars().all(|c| c == '0') {
+            return String::from("00000000");
+        }
+
+        let mut output = String::new();
+        let mut working_value = input.trim_start_matches('0').to_string();
+        while working_value != "0" {
+            let last_digit = working_value.chars().last().unwrap();
+            let last_digit = last_digit.to_digit(10).unwrap() as u8;
+            output.insert(0, char::from_digit((last_digit % 2) as u32, 10).unwrap());
+            working_value = self.divide_string_by_two(&working_value);
+        }
+        return output;
+    }
+
+    fn multiply_string_by_two(&self, input: &String) -> String {
+        let mut result = String::new();
+        let mut carry = 0u8;
+        for c in input.chars().rev() {
+            let operand = c.to_digit(10).unwrap() as u8 * 2 + carry;
+            let result_digit = operand % 10;
+            result.insert(0, char::from_digit(result_digit as u32, 10).unwrap());
+            carry = operand / 10;
+        }
+
+        if carry != 0 {
+            result.insert(0, '1');
+        }
+
+        return result;
+    }
+
+    fn add_one_to_string(&self, input: &String) -> String {
+        let mut carry = 1;
+        let mut result = String::new();
+        for c in input.chars().rev() {
+            if carry == 0 {
+                result.insert(0, c);
+                continue;
+            }
+
+            let digit = c.to_digit(10).unwrap() + 1;
+            if digit > 9 {
+                result.insert(0, '0');
+            } else {
+                carry = 0;
+                result.insert(0, char::from_digit(digit, 10).unwrap());
+            }
+        }
+
+        if carry == 1 {
+            result.insert(0, '1');
+        }
+
+        return result;
+    }
+
+    fn binary_string_to_decimal_string(&self, input: &String) -> String {
+        if input.chars().all(|c| c == '0') {
+            return String::from("0");
+        }
+
+        let mut output = String::new();
+        for c in input.trim_start_matches('0').chars() {
+            output = self.multiply_string_by_two(&output);
+            if c == '1' {
+                output = self.add_one_to_string(&output);
+            }
+        }
+
+        return output;
+    }
+
+}
+impl Converter for DecConverter {
+    fn validate_string(&self, bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+        if bytes.len() == 1 {
+            for c in bytes[0].chars() {
+                if !c.is_digit(10) {
+                    return Err(format!("Unexpected character: {:?}. The number must be a valid unsigned integer.", c).into());
+                }
+            }
+        } else {
+            for s in bytes {
+                s.parse::<u8>().map_err(|e| format!(
+                    "{}: {}: each byte must be an unsigned 8-bit number",
+                    s, e
+                ))?;
+            }
+        }
+
+        return Ok(());
+    }
+
+    fn validate_bytes(&self, _: &Vec<u8>) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
+        let bin_converter = BinConverter{};
+        if bytes.len() == 1 {
+            let bin_str = self.decimal_string_to_binary_string(bytes.first().unwrap());
+            return bin_converter.to_bytes(&vec![bin_str]);
+        }
+
+        let bin_bytes: Vec<String> = bytes.iter().map(|s| self.decimal_string_to_binary_string(s)).collect();
+        return bin_converter.to_bytes(&bin_bytes);
+    }
+
+    fn to_string(&self, bytes: &Vec<u8>, concat: bool) -> Vec<String> {
+        let bin_converter = BinConverter{};
+        let bin_str = bin_converter.to_string(bytes, concat);
+        return bin_str.iter().map(|s| self.binary_string_to_decimal_string(s)).collect();
+    }
+}
+
 struct TodoConverter;
 impl Converter for TodoConverter {
     fn to_bytes(&self, _bytes: &Vec<String>) -> Vec<u8> {
@@ -225,6 +362,7 @@ impl BaseConvertArgs {
         match format {
             Format::Ascii => Box::new(AsciiConverter),
             Format::Bin => Box::new(BinConverter),
+            Format::Dec => Box::new(DecConverter),
             _ => Box::new(TodoConverter)
         }
     }
@@ -385,6 +523,34 @@ mod bin_convert_test {
     )]
     fn will_reject_string(bytes: Vec<String>) {
         let converter = BinConverter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_err());
+    }
+}
+
+#[cfg(test)]
+mod dec_convert_test {
+    use rstest::rstest;
+
+    use super::{DecConverter, Converter};
+
+    #[rstest(bytes,
+        case(vec![String::from("12312389123912")]),
+        case(vec![String::from("123"), String::from("0")]),
+    )]
+    fn will_accept_string(bytes: Vec<String>) {
+        let converter = DecConverter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_ok());
+    }
+
+    #[rstest(bytes,
+        case(vec![String::from("1111111111111111111111111111111"), String::from("0")]),
+        case(vec![String::from("-10")]),
+        case(vec![String::from("0b0")]),
+    )]
+    fn will_reject_string(bytes: Vec<String>) {
+        let converter = DecConverter{};
         let result = converter.validate_string(&bytes);
         assert!(result.is_err());
     }
