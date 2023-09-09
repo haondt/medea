@@ -119,24 +119,36 @@ impl Converter for AsciiConverter {
 }
 
 struct BinConverter;
+impl BinConverter {
+    fn to_byte(&self, input: &str) -> u8 {
+        let mut byte: u8 = 0;
+        for c in input.chars() {
+            byte <<= 1;
+            byte += match c {
+                '1' => 1,
+                _ => 0
+            };
+        }
+        byte
+    }
+}
+
 impl Converter for BinConverter {
     fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
         if bytes.len() == 1 {
-            let chunk_size = min(bytes[0].len(), 8);
-            let chunk = &bytes[0][0..chunk_size];
-            let mut byte: u8 = 0;
-            for c in chunk.chars() {
-                byte <<= 1;
-                byte += match c {
-                    '1' => 1,
-                    _ => 0
-                };
+            let mut output = Vec::new();
+            let mut chunk_start = 0;
+            let mut chunk_end = min(bytes[0].len(), 8); // non-inclusive
+            while chunk_start != chunk_end {
+                let chunk = &bytes[0][chunk_start..chunk_end];
+                output.push(self.to_byte(&chunk));
+                chunk_start = chunk_end;
+                chunk_end = min(bytes[0].len(), chunk_end + 8);
             }
-            return vec![byte];
+            return output;
         }
 
-        todo!()
-
+        bytes.iter().map(|s| self.to_byte(s)).collect()
     }
 
     fn to_string(&self, bytes: &Vec<u8>, concat: bool) -> Vec<String> {
@@ -284,14 +296,36 @@ mod bin_convert_test {
     use super::{BinConverter, Converter};
 
     #[rstest(bytes, expected_result,
+        case(vec![String::from("01"), String::from("10")], vec![1, 2]),
+        case(vec![String::from("001100"), String::from("11")], vec![12, 3]),
+        case(vec![String::from("10110101"), String::from("01010000"), String::from("11110110"), String::from("11111011"), String::from("0111")], vec![181, 80, 246, 251, 7]),
+    )]
+    fn will_read_from_single_string(bytes: Vec<String>, expected_result: Vec<u8>) {
+        let converter = BinConverter{};
+        let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
         case(vec![String::from("0")], vec![0]),
         case(vec![String::from("001100")], vec![12]),
         case(vec![String::from("10110011")], vec![179]),
         case(vec![String::from("101101010101000011110110111110110111")], vec![181, 80, 246, 251, 7]),
     )]
-    fn will_read_from_single_string(bytes: Vec<String>, expected_result: Vec<u8>) {
+    fn will_read_from_multiple_string(bytes: Vec<String>, expected_result: Vec<u8>) {
         let converter = BinConverter{};
         let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
+        case(vec![0], vec![String::from("00000000")]),
+        case(vec![12], vec![String::from("00001100")]),
+        case(vec![255], vec![String::from("11111111")]),
+    )]
+    fn will_convert_from_single_byte(bytes: Vec<u8>, expected_result: Vec<String>) {
+        let converter = BinConverter{};
+        let result = converter.to_string(&bytes, true);
         assert_eq!(result, expected_result);
     }
 }
