@@ -90,27 +90,27 @@ enum Format {
 }
 
 trait Converter {
-    fn validate_string(&self, bytes: &Vec<String>) -> Result<(), Box<dyn Error>>;
-    fn validate_bytes(&self, bytes: &Vec<u8>) -> Result<(), Box<dyn Error>>;
-    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8>;
-    fn to_string(&self, bytes: &Vec<u8>, concat: bool) -> Vec<String>;
+    fn validate_string(&self, bytes: &[String]) -> Result<(), Box<dyn Error>>;
+    fn validate_bytes(&self, bytes: &[u8]) -> Result<(), Box<dyn Error>>;
+    fn to_bytes(&self, bytes: &[String]) -> Vec<u8>;
+    fn to_string(&self, bytes: &[u8], concat: bool) -> Vec<String>;
 }
 
 struct AsciiConverter;
 impl Converter for AsciiConverter {
-    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
+    fn to_bytes(&self, bytes: &[String]) -> Vec<u8> {
         bytes.concat().chars().map(|c| c as u8).collect()
     }
 
-    fn to_string(&self, bytes: &Vec<u8>, _: bool) -> Vec<String> {
+    fn to_string(&self, bytes: &[u8], _: bool) -> Vec<String> {
        vec![bytes.iter().map(|&b| String::from(b as char)).collect()]
     }
 
-    fn validate_string(&self, _bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    fn validate_string(&self, _bytes: &[String]) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
-    fn validate_bytes(&self, bytes: &Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn validate_bytes(&self, bytes: &[u8]) -> Result<(), Box<dyn Error>> {
         for b in bytes {
             if b < &32 || b > &126 {
                 return Err("Byte value(s) out of range for printable characters. Should be between 32 and 126.".into());
@@ -135,7 +135,7 @@ impl BinConverter {
     }
 }
 impl Converter for BinConverter {
-    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
+    fn to_bytes(&self, bytes: &[String]) -> Vec<u8> {
         if bytes.len() == 1 {
             let padding = match bytes[0].len() % 8 != 0 {
                 true => "0".repeat(8 - bytes[0].len() % 8),
@@ -158,7 +158,7 @@ impl Converter for BinConverter {
         bytes.iter().map(|s| self.to_byte(s)).collect()
     }
 
-    fn to_string(&self, bytes: &Vec<u8>, concat: bool) -> Vec<String> {
+    fn to_string(&self, bytes: &[u8], concat: bool) -> Vec<String> {
         let mut outputs = Vec::new();
         for byte in bytes {
             let mut byte_string = String::new();
@@ -180,7 +180,7 @@ impl Converter for BinConverter {
         }
     }
 
-    fn validate_string(&self, bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    fn validate_string(&self, bytes: &[String]) -> Result<(), Box<dyn Error>> {
         for s in bytes {
             if s.len() < 1 {
                 return Err("Must have at least 1 bit per byte".into());
@@ -197,7 +197,7 @@ impl Converter for BinConverter {
         return Ok(());
     }
 
-    fn validate_bytes(&self, _bytes: &Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn validate_bytes(&self, _bytes: &[u8]) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 }
@@ -297,7 +297,7 @@ impl DecConverter {
 
 }
 impl Converter for DecConverter {
-    fn validate_string(&self, bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    fn validate_string(&self, bytes: &[String]) -> Result<(), Box<dyn Error>> {
         if bytes.len() == 1 {
             for c in bytes[0].chars() {
                 if !c.is_digit(10) {
@@ -316,11 +316,11 @@ impl Converter for DecConverter {
         return Ok(());
     }
 
-    fn validate_bytes(&self, _: &Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn validate_bytes(&self, _: &[u8]) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
-    fn to_bytes(&self, bytes: &Vec<String>) -> Vec<u8> {
+    fn to_bytes(&self, bytes: &[String]) -> Vec<u8> {
         let bin_converter = BinConverter{};
         if bytes.len() == 1 {
             let bin_str = self.decimal_string_to_binary_string(bytes.first().unwrap());
@@ -331,7 +331,7 @@ impl Converter for DecConverter {
         return bin_converter.to_bytes(&bin_bytes);
     }
 
-    fn to_string(&self, bytes: &Vec<u8>, concat: bool) -> Vec<String> {
+    fn to_string(&self, bytes: &[u8], concat: bool) -> Vec<String> {
         let bin_converter = BinConverter{};
         let bin_str = bin_converter.to_string(bytes, concat);
         return bin_str.iter().map(|s| self.binary_string_to_decimal_string(s)).collect();
@@ -340,19 +340,19 @@ impl Converter for DecConverter {
 
 struct TodoConverter;
 impl Converter for TodoConverter {
-    fn to_bytes(&self, _bytes: &Vec<String>) -> Vec<u8> {
+    fn to_bytes(&self, _bytes: &[String]) -> Vec<u8> {
         todo!()
     }
 
-    fn to_string(&self, _bytes: &Vec<u8>, _concat: bool) -> Vec<String> {
+    fn to_string(&self, _bytes: &[u8], _concat: bool) -> Vec<String> {
         todo!()
     }
 
-    fn validate_string(&self, _bytes: &Vec<String>) -> Result<(), Box<dyn Error>> {
+    fn validate_string(&self, _bytes: &[String]) -> Result<(), Box<dyn Error>> {
         todo!()
     }
 
-    fn validate_bytes(&self, _bytes: &Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn validate_bytes(&self, _bytes: &[u8]) -> Result<(), Box<dyn Error>> {
         todo!()
     }
 }
@@ -431,20 +431,20 @@ mod ascii_convert_tests {
     }
 
     #[rstest(bytes,
-        case(vec![99]),
-        case(vec![99, 100]),
+        case(&[99]),
+        case(&[99, 100]),
     )]
-    fn will_accept_bytes(bytes: Vec<u8>) {
+    fn will_accept_bytes(bytes: &[u8]) {
         let converter = AsciiConverter{};
         let result = converter.validate_bytes(&bytes);
         assert!(result.is_ok());
     }
 
     #[rstest(bytes,
-        case(vec![99, 13, 100]),
-        case(vec![150]),
+        case(&[99, 13, 100]),
+        case(&[150]),
     )]
-    fn will_reject_bytes(bytes: Vec<u8>) {
+    fn will_reject_bytes(bytes: &[u8]) {
         let converter = AsciiConverter{};
         let result = converter.validate_bytes(&bytes);
         assert!(result.is_err());
@@ -458,70 +458,70 @@ mod bin_convert_test {
     use super::{BinConverter, Converter};
 
     #[rstest(bytes, expected_result,
-        case(vec![String::from("0")], vec![0]),
-        case(vec![String::from("001100")], vec![12]),
-        case(vec![String::from("10110011")], vec![179]),
-        case(vec![String::from("101101010101000011110110111110110111")], vec![11, 85, 15, 111, 183]),
+        case(&[String::from("0")], &[0]),
+        case(&[String::from("001100")], &[12]),
+        case(&[String::from("10110011")], &[179]),
+        case(&[String::from("101101010101000011110110111110110111")], &[11, 85, 15, 111, 183]),
     )]
-    fn will_read_from_single_string(bytes: Vec<String>, expected_result: Vec<u8>) {
+    fn will_read_from_single_string(bytes: &[String], expected_result: &[u8]) {
         let converter = BinConverter{};
         let result = converter.to_bytes(&bytes);
         assert_eq!(result, expected_result);
     }
 
     #[rstest(bytes, expected_result,
-        case(vec![String::from("0"), String::from("1")], vec![0, 1]),
-        case(vec![String::from("001100"), String::from("10110011")], vec![12, 179]),
-        case(vec![String::from("10110101"), String::from("01010000"), String::from("11110110"), String::from("11111011"), String::from("0111")], vec![181, 80, 246, 251, 7]),
+        case(&[String::from("0"), String::from("1")], &[0, 1]),
+        case(&[String::from("001100"), String::from("10110011")], &[12, 179]),
+        case(&[String::from("10110101"), String::from("01010000"), String::from("11110110"), String::from("11111011"), String::from("0111")], &[181, 80, 246, 251, 7]),
     )]
-    fn will_read_from_multiple_string(bytes: Vec<String>, expected_result: Vec<u8>) {
+    fn will_read_from_multiple_string(bytes: &[String], expected_result: &[u8]) {
         let converter = BinConverter{};
         let result = converter.to_bytes(&bytes);
         assert_eq!(result, expected_result);
     }
 
     #[rstest(bytes, expected_result,
-        case(vec![0], vec![String::from("00000000")]),
-        case(vec![12], vec![String::from("00001100")]),
-        case(vec![255], vec![String::from("11111111")]),
+        case(&[0], &[String::from("00000000")]),
+        case(&[12], &[String::from("00001100")]),
+        case(&[255], &[String::from("11111111")]),
     )]
-    fn will_convert_from_single_byte(bytes: Vec<u8>, expected_result: Vec<String>) {
+    fn will_convert_from_single_byte(bytes: &[u8], expected_result: &[String]) {
         let converter = BinConverter{};
         let result = converter.to_string(&bytes, true);
         assert_eq!(result, expected_result);
     }
 
     #[rstest(bytes, expected_result, concat,
-        case(vec![255, 0], vec![String::from("1111111100000000")], true),
-        case(vec![12, 30], vec![String::from("0000110000011110")], true),
-        case(vec![11, 85, 15, 111, 183], vec![String::from("0000101101010101000011110110111110110111")], true),
+        case(&[255, 0], &[String::from("1111111100000000")], true),
+        case(&[12, 30], &[String::from("0000110000011110")], true),
+        case(&[11, 85, 15, 111, 183], &[String::from("0000101101010101000011110110111110110111")], true),
 
-        case(vec![0, 255], vec![String::from("00000000"), String::from("11111111")], false),
-        case(vec![12, 30], vec![String::from("00001100"), String::from("00011110")], false),
-        case(vec![11, 85, 15, 111, 183], vec![String::from("00001011"), String::from("01010101"), String::from("00001111"), String::from("01101111"), String::from("10110111")], false),
+        case(&[0, 255], &[String::from("00000000"), String::from("11111111")], false),
+        case(&[12, 30], &[String::from("00001100"), String::from("00011110")], false),
+        case(&[11, 85, 15, 111, 183], &[String::from("00001011"), String::from("01010101"), String::from("00001111"), String::from("01101111"), String::from("10110111")], false),
     )]
-    fn will_convert_from_multiple_byte(bytes: Vec<u8>, expected_result: Vec<String>, concat: bool) {
+    fn will_convert_from_multiple_byte(bytes: &[u8], expected_result: &[String], concat: bool) {
         let converter = BinConverter{};
         let result = converter.to_string(&bytes, concat);
         assert_eq!(result, expected_result);
     }
 
     #[rstest(bytes,
-        case(vec![String::from("1111111111111111111111111111111")]),
-        case(vec![String::from("0"), String::from("11111101")]),
+        case(&[String::from("1111111111111111111111111111111")]),
+        case(&[String::from("0"), String::from("11111101")]),
     )]
-    fn will_accept_string(bytes: Vec<String>) {
+    fn will_accept_string(bytes: &[String]) {
         let converter = BinConverter{};
         let result = converter.validate_string(&bytes);
         assert!(result.is_ok());
     }
 
     #[rstest(bytes,
-        case(vec![String::from("1111111111111111111111111111111"), String::from("0")]),
-        case(vec![String::from("")]),
-        case(vec![String::from("0b0")]),
+        case(&[String::from("1111111111111111111111111111111"), String::from("0")]),
+        case(&[String::from("")]),
+        case(&[String::from("0b0")]),
     )]
-    fn will_reject_string(bytes: Vec<String>) {
+    fn will_reject_string(bytes: &[String]) {
         let converter = BinConverter{};
         let result = converter.validate_string(&bytes);
         assert!(result.is_err());
@@ -535,21 +535,21 @@ mod dec_convert_test {
     use super::{DecConverter, Converter};
 
     #[rstest(bytes,
-        case(vec![String::from("12312389123912")]),
-        case(vec![String::from("123"), String::from("0")]),
+        case(&[String::from("12312389123912")]),
+        case(&[String::from("123"), String::from("0")]),
     )]
-    fn will_accept_string(bytes: Vec<String>) {
+    fn will_accept_string(bytes: &[String]) {
         let converter = DecConverter{};
         let result = converter.validate_string(&bytes);
         assert!(result.is_ok());
     }
 
     #[rstest(bytes,
-        case(vec![String::from("1111111111111111111111111111111"), String::from("0")]),
-        case(vec![String::from("-10")]),
-        case(vec![String::from("0b0")]),
+        case(&[String::from("1111111111111111111111111111111"), String::from("0")]),
+        case(&[String::from("-10")]),
+        case(&[String::from("0b0")]),
     )]
-    fn will_reject_string(bytes: Vec<String>) {
+    fn will_reject_string(bytes: &[String]) {
         let converter = DecConverter{};
         let result = converter.validate_string(&bytes);
         assert!(result.is_err());
