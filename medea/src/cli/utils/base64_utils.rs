@@ -61,7 +61,10 @@ pub fn encode_url(bytes: &[u8]) -> String {
     encode_internal(bytes, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", false)
 }
 
-pub fn decode(input: String) -> Vec<u8> {
+fn decode_internal<F>(input: &str, byte_map: F) -> Vec<u8>
+where
+    F: Fn(u8) -> u8
+{
     if input.len() == 0 {
         return Vec::new();
     }
@@ -71,15 +74,10 @@ pub fn decode(input: String) -> Vec<u8> {
     let mut buffer_length = 0;
 
     for &byte in input.as_bytes() {
-        let value = match byte {
-            b'A'..=b'Z' => byte - b'A',
-            b'a'..=b'z' => byte - b'a' + 26,
-            b'0'..=b'9' => byte - b'0' + 52,
-            b'+' => 62,
-            b'/' => 63,
-            b'=' => continue, // Ignore padding characters
-            _ => panic!("Invalid character in Base64 string"),
-        };
+        let value = byte_map(byte);
+        if byte == b'=' {
+            continue;
+        }
 
         buffer = (buffer << 6) | (value as u16);
         buffer_length += 6;
@@ -91,37 +89,34 @@ pub fn decode(input: String) -> Vec<u8> {
     }
 
     result
+
+}
+
+pub fn decode(input: String) -> Vec<u8> {
+    decode_internal(input.as_str(),
+        |byte| match byte {
+            b'A'..=b'Z' => byte - b'A',
+            b'a'..=b'z' => byte - b'a' + 26,
+            b'0'..=b'9' => byte - b'0' + 52,
+            b'+' => 62,
+            b'/' => 63,
+            b'=' => 255, // Ignore padding characters
+            _ => panic!("Invalid character in Base64 string"),
+        }
+    )
 }
 
 pub fn decode_url(input: String) -> Vec<u8> {
-    if input.len() == 0 {
-        return Vec::new();
-    }
-
-    let mut result = Vec::new();
-    let mut buffer = 0u16; // 2 byte buffer
-    let mut buffer_length = 0;
-
-    for &byte in input.as_bytes() {
-        let value = match byte {
+    decode_internal(input.as_str(),
+        |byte| match byte {
             b'A'..=b'Z' => byte - b'A',
             b'a'..=b'z' => byte - b'a' + 26,
             b'0'..=b'9' => byte - b'0' + 52,
             b'-' => 62,
             b'_' => 63,
             _ => panic!("Invalid character in Base64 string"),
-        };
-
-        buffer = (buffer << 6) | (value as u16);
-        buffer_length += 6;
-        if buffer_length >= 8 {
-            result.push((buffer >> (buffer_length -8)) as u8);
-            buffer_length -= 8;
         }
-
-    }
-
-    result
+    )
 }
 
 
