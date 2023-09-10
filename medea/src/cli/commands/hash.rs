@@ -7,9 +7,9 @@ use digest::OutputSizeUser;
 use hmac::{Hmac, Mac};
 use sha1::Sha1;
 
+use indoc::indoc;
 use md5::{digest::DynDigest, Md5};
 use sha2::{Sha256, Sha512};
-use indoc::indoc;
 
 type HmacSha256 = Hmac<Sha256>;
 type HmacSha512 = Hmac<Sha512>;
@@ -39,16 +39,34 @@ pub struct HashArgs {
     #[arg(help = "Data to be hashed")]
     data: String,
 
-    #[arg(short, long, help = "Output format", value_enum, default_value = "hex")]
-    format: Format,
+    #[arg(
+        short,
+        long,
+        help = "Output format",
+        value_enum,
+        default_value = "hex",
+        value_name = "FORMAT"
+    )]
+    to: Format,
 
-    #[arg(short, long, help = "Hashing algorithm", value_enum, default_value = "md5")]
+    #[arg(
+        short,
+        long,
+        help = "Hashing algorithm",
+        value_enum,
+        default_value = "md5"
+    )]
     algorithm: Algorithm,
 
     #[arg(long, help = "Key for generating hmac hashes")]
     hmac: Option<String>,
 
-    #[arg(short, long, help = "Use upper case characters for hex output", default_value = "false")]
+    #[arg(
+        short,
+        long,
+        help = "Use upper case characters for hex output",
+        default_value = "false"
+    )]
     upper: bool,
 }
 
@@ -111,7 +129,7 @@ impl Runnable for HashArgs {
             res = alg.finalize().to_vec().to_owned();
         }
 
-        let hash = match self.format {
+        let hash = match self.to {
             Format::B64 => Base64::encode_string(&res),
             Format::Hex => match self.upper {
                 true => base16ct::upper::encode_string(&res),
@@ -147,7 +165,7 @@ mod tests {
     fn will_create_base_64_hash() {
         let sut = HashArgs {
             algorithm: Algorithm::MD5,
-            format: Format::B64,
+            to: Format::B64,
             data: String::from("foo"),
             hmac: None,
             upper: false,
@@ -163,7 +181,7 @@ mod tests {
     fn will_create_uppercase_hex_hmac_hash() {
         let sut = HashArgs {
             algorithm: Algorithm::SHA256,
-            format: Format::Hex,
+            to: Format::Hex,
             data: String::from("foo"),
             hmac: Some(String::from("bar")),
             upper: true,

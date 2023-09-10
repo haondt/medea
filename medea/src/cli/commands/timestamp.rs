@@ -55,8 +55,9 @@ pub struct TimeStampArgs {
         long,
         default_value = "iso",
         long_help = "Format for output",
+        value_name = "FORMAT"
     )]
-    format: Format,
+    to: Format,
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -112,7 +113,7 @@ impl TimeStampArgs {
             None => Utc::now()
         };
 
-        let format_str = match self.format {
+        let format_str = match self.to {
             Format::Unix => "%s",
             Format::Iso => "%+",
         };
@@ -171,7 +172,7 @@ mod tests {
     fn will_generate_timestamp() -> Result<(), Box<dyn Error>> {
         let sut = TimeStampArgs {
             timezone: None,
-            format: super::Format::Iso,
+            to: super::Format::Iso,
             timestamp: None,
         };
 
@@ -184,7 +185,7 @@ mod tests {
     fn will_convert_from_unix_time() -> Result<(), Box<dyn Error>> {
         let sut = TimeStampArgs {
             timezone: None,
-            format: super::Format::Iso,
+            to: super::Format::Iso,
             timestamp: Some(String::from("1234567890")),
         };
 
@@ -197,7 +198,7 @@ mod tests {
     fn will_convert_to_unix_time() -> Result<(), Box<dyn Error>> {
         let sut = TimeStampArgs {
             timezone: None,
-            format: super::Format::Unix,
+            to: super::Format::Unix,
             timestamp: Some(String::from("2009-02-13T23:31:30+03:00")),
         };
 
@@ -210,7 +211,7 @@ mod tests {
     fn will_convert_with_short_timezone() -> Result<(), Box<dyn Error>> {
         let sut = TimeStampArgs {
             timezone: Some(String::from("EST")),
-            format: super::Format::Iso,
+            to: super::Format::Iso,
             timestamp: Some(String::from("2009-02-13T23:31:30+02:00")),
         };
 
@@ -223,7 +224,7 @@ mod tests {
     fn will_convert_with_long_timezone() -> Result<(), Box<dyn Error>> {
         let sut = TimeStampArgs {
             timezone: Some(String::from("America/Toronto")),
-            format: super::Format::Iso,
+            to: super::Format::Iso,
             timestamp: Some(String::from("2009-02-13T23:31:30+02:00")),
         };
 
