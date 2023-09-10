@@ -8,7 +8,7 @@ Rules:
     therefore, each input must be 0 - 255
     - for binary, this means no more than 8 bits
     - for hex, this means no more than 2 characters
-    - for b64, we will just allow for space-delimited 3 byte segments
+    - for b64, we will append multiple inputs into a single input
     - for ascii, characters do not need to be space-delimited
     - for decimal, this means 0 - 255
 - for practical purposes, the data fed into an ascii output (either as a single
@@ -22,7 +22,7 @@ use std::error::Error;
 use clap::{Parser, ValueEnum};
 use indoc::indoc;
 
-use crate::cli::args::{Runnable, BaseArgs};
+use crate::cli::{args::{Runnable, BaseArgs}, utils::base64_utils};
 
 #[derive(Parser, Debug, Clone)]
 #[command(
@@ -338,6 +338,46 @@ impl Converter for DecConverter {
     }
 }
 
+struct B64Converter;
+impl Converter for B64Converter {
+    fn validate_string(&self, bytes: &[String]) -> Result<(), Box<dyn Error>> {
+        let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        let mut num_padding = 0;
+        let complete_str = bytes.concat();
+
+        if complete_str.len() % 4 != 0 {
+            return Err("incomplete group, b64 string length must be a multiple of 4".into());
+        }
+
+        for c in complete_str.chars() {
+            if c == '=' {
+                num_padding += 1;
+                if num_padding > 2 {
+                    return Err("more than 2 padding characters in input string".into());
+                }
+            }
+
+            if !c.is_whitespace() && !characters.contains(c) {
+                return Err(format!("unexpected character: {:?}", c).into());
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validate_bytes(&self, _: &[u8]) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    fn to_bytes(&self, bytes: &[String]) -> Vec<u8> {
+        base64_utils::decode(bytes.concat())
+    }
+
+    fn to_string(&self, bytes: &[u8], _: bool) -> Vec<String> {
+        vec![base64_utils::encode(bytes)]
+    }
+}
+
 struct TodoConverter;
 impl Converter for TodoConverter {
     fn to_bytes(&self, _bytes: &[String]) -> Vec<u8> {
@@ -363,6 +403,7 @@ impl BaseConvertArgs {
             Format::Ascii => Box::new(AsciiConverter),
             Format::Bin => Box::new(BinConverter),
             Format::Dec => Box::new(DecConverter),
+            Format::B64 => Box::new(B64Converter),
             _ => Box::new(TodoConverter)
         }
     }
@@ -601,6 +642,81 @@ mod dec_convert_test {
     )]
     fn will_convert_from_multiple_byte(bytes: &[u8], expected_result: &[String], concat: bool) {
         let converter = DecConverter{};
+        let result = converter.to_string(&bytes, concat);
+        assert_eq!(result, expected_result);
+    }
+
+}
+
+#[cfg(test)]
+mod b64_convert_test {
+    use rstest::rstest;
+
+    use super::{B64Converter, Converter};
+
+    #[rstest(bytes,
+        case(&[String::from("ZG==")]),
+        case(&[String::from("ZGU=")]),
+        case(&[String::from("BvdmAAAA"), String::from("ZZ==")]),
+    )]
+    fn will_accept_string(bytes: &[String]) {
+        let converter = B64Converter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_ok());
+    }
+
+    #[rstest(bytes,
+        case(&[String::from("AA/:")]),
+        case(&[String::from("AA")]),
+        case(&[String::from("A===")]),
+    )]
+    fn will_reject_string(bytes: &[String]) {
+        let converter = B64Converter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_err());
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[String::from("ZGU=")], &[100, 101]),
+        case(&[String::from("ZGUAAaiuauisdAS8907asA0Z")], &[100, 101, 0, 1, 168, 174, 106, 232, 172, 116, 4, 188, 247, 78, 218, 176, 13, 25]),
+        case(&[String::from("AAAA")], &[0, 0, 0]),
+        case(&[String::from("AQ==")], &[1]),
+    )]
+    fn will_read_from_single_string(bytes: &[String], expected_result: &[u8]) {
+        let converter = B64Converter{};
+        let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[String::from("ZG"), String::from("U=")], &[100, 101]),
+    )]
+    fn will_read_from_multiple_string(bytes: &[String], expected_result: &[u8]) {
+        let converter = B64Converter{};
+        let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[1], &[String::from("AQ==")]),
+        case(&[0], &[String::from("AA==")]),
+        case(&[255], &[String::from("/w==")]),
+    )]
+    fn will_convert_from_single_byte(bytes: &[u8], expected_result: &[String]) {
+        let converter = B64Converter{};
+        let result = converter.to_string(&bytes, true);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result, concat,
+        case(&[4, 64, 13], &[String::from("BEAN")], true),
+        case(&[0, 255], &[String::from("AP8=")], true),
+        case(&[0, 0], &[String::from("AAA=")], true),
+        case(&[0, 0, 0], &[String::from("AAAA")], true),
+        case(&[11, 85, 15, 111, 183], &[String::from("C1UPb7c=")], true),
+    )]
+    fn will_convert_from_multiple_byte(bytes: &[u8], expected_result: &[String], concat: bool) {
+        let converter = B64Converter{};
         let result = converter.to_string(&bytes, concat);
         assert_eq!(result, expected_result);
     }
