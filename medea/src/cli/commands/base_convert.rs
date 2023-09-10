@@ -31,13 +31,17 @@ use crate::cli::{args::{Runnable, BaseArgs}, utils::{base64_utils, hex_utils}};
     long_about = indoc!{"
         Convert the input number to another number base. Input may be supplied
         as a single number, or as a space-delimited list of bytes.
-
-        For ascii input, the bytes should not be space-delimited.
-        For ascii output, input values must be between 32 - 126.
     "},
     after_long_help = indoc!{r#"
         Examples:
-            TODO!
+            # convert decimal to hex
+            medea base -t hex -u 12345
+
+            # convert base64 to ascii
+            medea base -f b64 -t ascii VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=
+
+            # convert individual bytes from hex to binary
+            medea base -f hex -t bin AB CD 01 23
     "#}
 )]
 pub struct BaseConvertArgs {
@@ -448,8 +452,7 @@ impl Runnable for BaseConvertArgs {
             }
         }
 
-        println!("bytes: {:?}", bytes);
-        return Ok(format!("result: {:?}", result));
+        return Ok(result.join(" "));
     }
 }
 
