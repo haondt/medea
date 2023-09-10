@@ -22,7 +22,7 @@ use std::error::Error;
 use clap::{Parser, ValueEnum};
 use indoc::indoc;
 
-use crate::cli::{args::{Runnable, BaseArgs}, utils::base64_utils};
+use crate::cli::{args::{Runnable, BaseArgs}, utils::{base64_utils, hex_utils}};
 
 #[derive(Parser, Debug, Clone)]
 #[command(
@@ -106,7 +106,7 @@ impl Converter for AsciiConverter {
        vec![bytes.iter().map(|&b| String::from(b as char)).collect()]
     }
 
-    fn validate_string(&self, _bytes: &[String]) -> Result<(), Box<dyn Error>> {
+    fn validate_string(&self, _: &[String]) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
@@ -378,22 +378,45 @@ impl Converter for B64Converter {
     }
 }
 
-struct TodoConverter;
-impl Converter for TodoConverter {
-    fn to_bytes(&self, _bytes: &[String]) -> Vec<u8> {
-        todo!()
+struct HexConverter;
+impl Converter for HexConverter {
+    fn validate_string(&self, bytes: &[String]) -> Result<(), Box<dyn Error>> {
+        let characters  = "0123456789ABCDEFabcdef";
+        for s in bytes  {
+            if bytes.len() > 1 {
+                if s.len() != 2 {
+                    return Err(format!("Unexpected number of characters in byte: {:?}", s).into());
+                }
+            } else if s.len() % 2 != 0 {
+                return Err("input contains partial bytes. input length should be a multiple of 2".into());
+            }
+
+            for c in s.chars() {
+                if !characters.contains(c) {
+                    return Err(format!("unexpected character: {:?}", c).into());
+                }
+            }
+        }
+
+        Ok(())
     }
 
-    fn to_string(&self, _bytes: &[u8], _concat: bool) -> Vec<String> {
-        todo!()
+    fn validate_bytes(&self, _: &[u8]) -> Result<(), Box<dyn Error>> {
+        Ok(())
     }
 
-    fn validate_string(&self, _bytes: &[String]) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn to_bytes(&self, bytes: &[String]) -> Vec<u8> {
+        if bytes.len() == 1 {
+            return hex_utils::decode(bytes[0].to_string());
+        }
+        return bytes.iter().map(|b| hex_utils::decode(b.to_string())[0]).collect();
     }
 
-    fn validate_bytes(&self, _bytes: &[u8]) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn to_string(&self, bytes: &[u8], concat: bool) -> Vec<String> {
+        match concat {
+            true => vec![hex_utils::encode(bytes, false)],
+            false => bytes.iter().map(|b| hex_utils::encode(&[*b], false)).collect()
+        }
     }
 }
 
@@ -404,7 +427,7 @@ impl BaseConvertArgs {
             Format::Bin => Box::new(BinConverter),
             Format::Dec => Box::new(DecConverter),
             Format::B64 => Box::new(B64Converter),
-            _ => Box::new(TodoConverter)
+            Format::Hex => Box::new(HexConverter),
         }
     }
 }
@@ -419,8 +442,10 @@ impl Runnable for BaseConvertArgs {
         to_converter.validate_bytes(&bytes)?;
         let mut result = to_converter.to_string(&bytes, self.input.len() == 1);
 
-        if self.input.len() == 1 {
-            result = vec![result.join("")]
+        if let Format::Hex = self.to {
+            if self.upper {
+                result = result.iter().map(|s| s.to_uppercase()).collect();
+            }
         }
 
         println!("bytes: {:?}", bytes);
@@ -717,6 +742,87 @@ mod b64_convert_test {
     )]
     fn will_convert_from_multiple_byte(bytes: &[u8], expected_result: &[String], concat: bool) {
         let converter = B64Converter{};
+        let result = converter.to_string(&bytes, concat);
+        assert_eq!(result, expected_result);
+    }
+
+}
+
+#[cfg(test)]
+mod hex_convert_test {
+    use rstest::rstest;
+
+    use super::{HexConverter, Converter};
+
+    #[rstest(bytes,
+        case(&[String::from("D59D1EE0")]),
+        case(&[String::from("A1")]),
+        case(&[String::from("AA"), String::from("01")]),
+        case(&[String::from("aA"), String::from("0b")]),
+    )]
+    fn will_accept_string(bytes: &[String]) {
+        let converter = HexConverter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_ok());
+    }
+
+    #[rstest(bytes,
+        case(&[String::from("0Y")]),
+        case(&[String::from("ABC")]),
+        case(&[String::from("01"), String::from("ABC")]),
+        case(&[String::from("01"), String::from("ABCD")]),
+    )]
+    fn will_reject_string(bytes: &[String]) {
+        let converter = HexConverter{};
+        let result = converter.validate_string(&bytes);
+        assert!(result.is_err());
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[String::from("DEADBEEF")], &[222, 173, 190, 239]),
+        case(&[String::from("AA")], &[170]),
+        case(&[String::from("00")], &[0]),
+        case(&[String::from("ABC123")], &[171, 193, 35]),
+    )]
+    fn will_read_from_single_string(bytes: &[String], expected_result: &[u8]) {
+        let converter = HexConverter{};
+        let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[String::from("A0"), String::from("C1")], &[160, 193]),
+    )]
+    fn will_read_from_multiple_string(bytes: &[String], expected_result: &[u8]) {
+        let converter = HexConverter{};
+        let result = converter.to_bytes(&bytes);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result,
+        case(&[1], &[String::from("01")]),
+        case(&[0], &[String::from("00")]),
+        case(&[255], &[String::from("ff")]),
+    )]
+    fn will_convert_from_single_byte(bytes: &[u8], expected_result: &[String]) {
+        let converter = HexConverter{};
+        let result = converter.to_string(&bytes, true);
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest(bytes, expected_result, concat,
+        case(&[4, 64, 13], &[String::from("04400d")], true),
+        case(&[0, 255], &[String::from("00ff")], true),
+        case(&[0, 0], &[String::from("0000")], true),
+        case(&[11, 85, 15, 111, 183], &[String::from("0b550f6fb7")], true),
+
+        case(&[4, 64, 13], &[String::from("04"), String::from("40"), String::from("0d")], false),
+        case(&[0, 255], &[String::from("00"), String::from("ff")], false),
+        case(&[0, 0], &[String::from("00"), String::from("00")], false),
+        case(&[11, 85, 15, 111, 183], &[String::from("0b"), String::from("55"), String::from("0f"), String::from("6f"), String::from("b7")], false),
+    )]
+    fn will_convert_from_multiple_byte(bytes: &[u8], expected_result: &[String], concat: bool) {
+        let converter = HexConverter{};
         let result = converter.to_string(&bytes, concat);
         assert_eq!(result, expected_result);
     }
