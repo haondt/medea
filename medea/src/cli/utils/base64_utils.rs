@@ -1,8 +1,6 @@
 use std::cmp::min;
 
-pub fn encode(bytes: &[u8]) -> String {
-    let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
+fn encode_internal(bytes: &[u8], alphabet: &str, pad: bool) -> String {
     // pad to a multiple of 3
     let mut string_capacity = bytes.len();
     if bytes.len() % 3 > 0 {
@@ -38,18 +36,29 @@ pub fn encode(bytes: &[u8]) -> String {
             // mask off those 6 bits
             let six_bits = shifted & mask;
             // grab the matching character
-            result.push(characters.chars().nth(six_bits as usize).unwrap());
+            result.push(alphabet.chars().nth(six_bits as usize).unwrap());
         }
 
         // fill any leftover spaces in the 4-character string with padding
-        for _ in 0..num_padded_characters {
-            result.push('=');
+        if pad {
+            for _ in 0..num_padded_characters {
+                result.push('=');
+            }
         }
 
         i += 3;
     }
 
     result
+
+}
+
+pub fn encode(bytes: &[u8]) -> String {
+    encode_internal(bytes, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", true)
+}
+
+pub fn encode_url(bytes: &[u8]) -> String {
+    encode_internal(bytes, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", false)
 }
 
 pub fn decode(input: String) -> Vec<u8> {
@@ -84,6 +93,37 @@ pub fn decode(input: String) -> Vec<u8> {
     result
 }
 
+pub fn decode_url(input: String) -> Vec<u8> {
+    if input.len() == 0 {
+        return Vec::new();
+    }
+
+    let mut result = Vec::new();
+    let mut buffer = 0u16; // 2 byte buffer
+    let mut buffer_length = 0;
+
+    for &byte in input.as_bytes() {
+        let value = match byte {
+            b'A'..=b'Z' => byte - b'A',
+            b'a'..=b'z' => byte - b'a' + 26,
+            b'0'..=b'9' => byte - b'0' + 52,
+            b'-' => 62,
+            b'_' => 63,
+            _ => panic!("Invalid character in Base64 string"),
+        };
+
+        buffer = (buffer << 6) | (value as u16);
+        buffer_length += 6;
+        if buffer_length >= 8 {
+            result.push((buffer >> (buffer_length -8)) as u8);
+            buffer_length -= 8;
+        }
+
+    }
+
+    result
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -96,6 +136,13 @@ mod tests {
         let bytes = [255, 255];
         let result = base64_utils::encode(&bytes);
         assert_eq!(result, "//8=");
+    }
+
+    #[test]
+    fn will_pad_b64_url_bytes_correctly() {
+        let bytes = [255, 255];
+        let result = base64_utils::encode_url(&bytes);
+        assert_eq!(result, "__8");
     }
 
     #[test]
@@ -114,6 +161,14 @@ mod tests {
     )]
     fn will_decode_b64_bytes_correctly(input: String, expected_result: &[u8]) {
         let result = base64_utils::decode(input);
+        assert_eq!(result, expected_result);
+    }
+
+    #[test]
+    fn will_decode_b64_url_bytes_correctly() {
+        let input = String::from("__8");
+        let expected_result = [255, 255];
+        let result = base64_utils::decode_url(input);
         assert_eq!(result, expected_result);
     }
 }
