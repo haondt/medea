@@ -57,7 +57,7 @@ pub fn encode(bytes: &[u8]) -> String {
     encode_internal(bytes, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", true)
 }
 
-pub fn _encode_url(bytes: &[u8]) -> String {
+pub fn encode_url(bytes: &[u8]) -> String {
     encode_internal(bytes, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", false)
 }
 
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn will_pad_b64_url_bytes_correctly() {
         let bytes = [255, 255];
-        let result = base64_utils::_encode_url(&bytes);
+        let result = base64_utils::encode_url(&bytes);
         assert_eq!(result, "__8");
     }
 

@@ -1,11 +1,11 @@
 use std::error::Error;
 
-use crate::cli::utils::hash_utils::Algorithm;
+
+use crate::cli::utils::hash_utils::DynHmacDigest;
 
 use super::super::{BaseArgs, Runnable};
 use base64ct::{Base64, Encoding};
 use clap::{Parser, ValueEnum};
-use digest::OutputSizeUser;
 use hmac::{Hmac, Mac};
 use sha1::Sha1;
 
@@ -78,19 +78,12 @@ enum Format {
     B64,
 }
 
-trait DynHmacDigest {
-    fn update(&mut self, data: &[u8]);
-    fn finalize_into_bytes(&mut self) -> Vec<u8>;
-}
-
-impl<T: Mac + OutputSizeUser + Clone> DynHmacDigest for T {
-    fn update(&mut self, data: &[u8]) {
-        self.update(data)
-    }
-
-    fn finalize_into_bytes(&mut self) -> Vec<u8> {
-        self.clone().finalize().into_bytes().to_vec().to_owned()
-    }
+#[derive(ValueEnum, Debug, Clone)]
+pub enum Algorithm {
+    MD5,
+    SHA1,
+    SHA256,
+    SHA512,
 }
 
 impl Runnable for HashArgs {
