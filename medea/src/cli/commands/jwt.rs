@@ -20,7 +20,7 @@ type HmacSha1 = Hmac<Sha1>;
     about = "Decode or encode JSON Web Tokens",
     after_help = "See `medea help jwt` for details",
     long_about = indoc!{"
-        Decode of encode JSON Web Tokens. By default, will decode the input as
+        Decode or encode JSON Web Tokens. By default, will decode the input as
         a JWT. Include a signing key to verify the signature as well. Set the
         --encode flag to encode a token. The input will be used as the payload,
         and the signing key and signing algorithm can be supplied with the
