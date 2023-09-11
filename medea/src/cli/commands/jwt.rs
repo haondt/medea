@@ -4,6 +4,8 @@ use hmac::{Hmac, Mac};
 use serde_json::Value;
 use sha1::Sha1;
 use sha2::{Sha256, Sha512};
+use indoc::indoc;
+
 
 use crate::cli::{args::{Runnable, BaseArgs}, utils::{base64_utils, ascii_utils, hash_utils::DynHmacDigest}};
 
@@ -14,15 +16,33 @@ type HmacSha512 = Hmac<Sha512>;
 type HmacSha1 = Hmac<Sha1>;
 
 #[derive(Parser, Debug, Clone)]
-#[command()]
+#[command(
+    about = "Decode or encode JSON Web Tokens",
+    after_help = "See `medea help jwt` for details",
+    long_about = indoc!{"
+        Decode of encode JSON Web Tokens. By default, will decode the input as
+        a JWT. Include a signing key to verify the signature as well. Set the
+        --encode flag to encode a token. The input will be used as the payload,
+        and the signing key and signing algorithm can be supplied with the
+        appropriate flags.
+    "},
+    after_long_help = indoc!{r#"
+        Examples:
+            # decode a jwt
+            medea jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c \
+                -k 'your-256-bit-secret'
+
+            # generate a jwt
+            medea jwt --encode '{"exp":1234567890, "some":"value"}' \
+                -k 'eW91ci0yNTYtYml0LXNlY3JldA==' --from b64 \
+                -a hs512
+    "#}
+)]
 pub struct JwtArgs {
     #[arg(help = "Token to be decoded, or payload to be encoded")]
     input: String,
 
-    #[arg(long, group("mode"), default_value = "false")]
-    decode: bool,
-
-    #[arg(long, group("mode"), default_value = "false")]
+    #[arg(long, group("mode"), default_value = "false", help = "Use encoding mode", long_help = "Include to encode a jwt, omit to decode one")]
     encode: bool,
 
     #[arg(short = 'k', long, help = "Signing key")]
@@ -31,7 +51,7 @@ pub struct JwtArgs {
     #[arg(short, long, help = "Encoding format of signing key", default_value = "ascii")]
     from: KeyFormat,
 
-    #[arg(short, long, default_value = "hs256")]
+    #[arg(short, long, default_value = "hs256", help = "Algorithm to use when encoding into a token")]
     algorithm: HmacAlgorithm,
 }
 
