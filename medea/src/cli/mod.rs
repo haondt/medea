@@ -12,6 +12,7 @@ use commands::hash::HashArgs;
 use commands::timestamp::TimeStampArgs;
 use commands::random::RandomArgs;
 use commands::base_convert::BaseConvertArgs;
+use commands::jwt::JwtArgs;
 
 #[derive(Parser, Debug)]
 #[enum_dispatch(Runnable,)]
@@ -24,6 +25,7 @@ pub enum ArgsEnum {
     Random(RandomArgs),
     #[command(visible_alias="base")]
     BaseConvert(BaseConvertArgs),
+    Jwt(JwtArgs),
 }
 
 pub use args::run;

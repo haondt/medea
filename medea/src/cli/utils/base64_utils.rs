@@ -57,7 +57,7 @@ pub fn encode(bytes: &[u8]) -> String {
     encode_internal(bytes, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", true)
 }
 
-pub fn encode_url(bytes: &[u8]) -> String {
+pub fn _encode_url(bytes: &[u8]) -> String {
     encode_internal(bytes, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", false)
 }
 
@@ -92,8 +92,8 @@ where
 
 }
 
-pub fn decode(input: String) -> Vec<u8> {
-    decode_internal(input.as_str(),
+pub fn decode(input: &str) -> Vec<u8> {
+    decode_internal(&input,
         |byte| match byte {
             b'A'..=b'Z' => byte - b'A',
             b'a'..=b'z' => byte - b'a' + 26,
@@ -106,8 +106,8 @@ pub fn decode(input: String) -> Vec<u8> {
     )
 }
 
-pub fn decode_url(input: String) -> Vec<u8> {
-    decode_internal(input.as_str(),
+pub fn decode_url(input: &str) -> Vec<u8> {
+    decode_internal(&input,
         |byte| match byte {
             b'A'..=b'Z' => byte - b'A',
             b'a'..=b'z' => byte - b'a' + 26,
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn will_pad_b64_url_bytes_correctly() {
         let bytes = [255, 255];
-        let result = base64_utils::encode_url(&bytes);
+        let result = base64_utils::_encode_url(&bytes);
         assert_eq!(result, "__8");
     }
 
@@ -155,7 +155,7 @@ mod tests {
         case("VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=", &[84, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32, 106, 117, 109, 112, 115, 32, 111, 118, 101, 114, 32, 49, 51, 32, 108, 97, 122, 121, 32, 100, 111, 103, 115, 46]),
     )]
     fn will_decode_b64_bytes_correctly(input: String, expected_result: &[u8]) {
-        let result = base64_utils::decode(input);
+        let result = base64_utils::decode(&input);
         assert_eq!(result, expected_result);
     }
 
@@ -163,7 +163,7 @@ mod tests {
     fn will_decode_b64_url_bytes_correctly() {
         let input = String::from("__8");
         let expected_result = [255, 255];
-        let result = base64_utils::decode_url(input);
+        let result = base64_utils::decode_url(&input);
         assert_eq!(result, expected_result);
     }
 }

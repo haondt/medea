@@ -3,3 +3,4 @@ pub mod hash;
 pub mod timestamp;
 pub mod random;
 pub mod base_convert;
+pub mod jwt;

@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use crate::cli::utils::hash_utils::Algorithm;
+
 use super::super::{BaseArgs, Runnable};
 use base64ct::{Base64, Encoding};
 use clap::{Parser, ValueEnum};
@@ -74,14 +76,6 @@ pub struct HashArgs {
 enum Format {
     Hex,
     B64,
-}
-
-#[derive(ValueEnum, Debug, Clone)]
-enum Algorithm {
-    MD5,
-    SHA1,
-    SHA256,
-    SHA512,
 }
 
 trait DynHmacDigest {
