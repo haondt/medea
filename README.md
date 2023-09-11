@@ -5,10 +5,14 @@ medea is a command-line developers toolbox, written in Rust. Similar to projects
 ## Features
 
 - Text Generation
-  - UUID
+  - UUID generation
+  - Random data generation
 - Text Processing
   - Hash generation
   - Timestamp conversion
+- Encoding and Decoding
+  - Base conversion
+  - JWT parsing and creation
 
 ## Installation
 
