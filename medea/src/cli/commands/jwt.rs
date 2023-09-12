@@ -62,7 +62,8 @@ pub struct Jwt {
 }
 
 #[derive(ValueEnum, Debug, Clone)]
-pub enum HmacAlgorithm {
+#[derive(PartialEq)]
+enum HmacAlgorithm {
     HS1,
     HS256,
     HS512,
@@ -212,5 +213,47 @@ impl Runnable for JwtArgs {
             true => self.encode_input(),
             false => self.decode_input()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cli::{commands::jwt::HmacAlgorithm, utils::ascii_utils, args::{Runnable, BaseArgs}, ArgsEnum};
+
+    use super::{JwtArgs, KeyFormat};
+
+
+    #[test]
+    fn will_decode_token() {
+        let header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+        let payload  = "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ";
+        let signature = "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+        let signing_bytes = ascii_utils::decode("your-256-bit-secret");
+
+        let jwt = JwtArgs::decode_jwt(&format!("{}.{}.{}", header, payload, signature)).unwrap();
+        let alg = JwtArgs::validate_structure(&jwt).unwrap();
+        assert_eq!(alg, HmacAlgorithm::HS256);
+
+        let determined_signature = JwtArgs::generate_signature(&header, &payload, &signing_bytes, &alg).unwrap();
+        assert_eq!(determined_signature, signature);
+    }
+
+    #[test]
+    fn will_encode_token() {
+        let args = JwtArgs {
+            input: String::from("{\"exp\":1234567890,\"some\":\"value\"}"),
+            signing_key: Some(String::from("eW91ci0yNTYtYml0LXNlY3JldA==")),
+            from: KeyFormat::B64,
+            algorithm: HmacAlgorithm::HS512,
+            encode: true
+        };
+
+        let base_args = BaseArgs {
+            command: ArgsEnum::Jwt(args.clone()),
+            trim: false
+        };
+
+        let result = args.run(&base_args, || String::new()).unwrap();
+        assert_eq!(result, "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEyMzQ1Njc4OTAsInNvbWUiOiJ2YWx1ZSJ9.iytZx7DPiI2Y9xtjZI_-3PBvCCegcIxf_y6Ouu1v8X_kYgnY7idE6UOx2Gh8fwBvg98Lh9F9uVXF3xbv58zbhA")
     }
 }
