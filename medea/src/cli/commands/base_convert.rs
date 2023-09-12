@@ -22,7 +22,7 @@ use std::error::Error;
 use clap::{Parser, ValueEnum};
 use indoc::indoc;
 
-use crate::cli::{args::{Runnable, BaseArgs}, utils::{base64_utils, hex_utils}};
+use crate::cli::{args::{Runnable, BaseArgs}, utils::{base64_utils, hex_utils, ascii_utils}};
 
 #[derive(Parser, Debug, Clone)]
 #[command(
@@ -103,11 +103,11 @@ trait Converter {
 struct AsciiConverter;
 impl Converter for AsciiConverter {
     fn to_bytes(&self, bytes: &[String]) -> Vec<u8> {
-        bytes.concat().chars().map(|c| c as u8).collect()
+        ascii_utils::decode(&bytes.concat())
     }
 
     fn to_string(&self, bytes: &[u8], _: bool) -> Vec<String> {
-       vec![bytes.iter().map(|&b| String::from(b as char)).collect()]
+       vec![ascii_utils::encode(bytes)]
     }
 
     fn validate_string(&self, _: &[String]) -> Result<(), Box<dyn Error>> {
@@ -374,7 +374,7 @@ impl Converter for B64Converter {
     }
 
     fn to_bytes(&self, bytes: &[String]) -> Vec<u8> {
-        base64_utils::decode(bytes.concat())
+        base64_utils::decode(&bytes.concat())
     }
 
     fn to_string(&self, bytes: &[u8], _: bool) -> Vec<String> {

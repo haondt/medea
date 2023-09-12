@@ -5,10 +5,14 @@ medea is a command-line developers toolbox, written in Rust. Similar to projects
 ## Features
 
 - Text Generation
-  - UUID
+  - UUID generation
+  - Random data generation
 - Text Processing
   - Hash generation
   - Timestamp conversion
+- Encoding and Decoding
+  - Base conversion
+  - JWT parsing and creation
 
 ## Installation
 
@@ -30,10 +34,10 @@ medea hash -a sha256 --hmac 'my secret' 'my data'
 medea uuid -u 5
 
 # convert timestamps
-medea ts --format iso -z America/Los_Angeles 1678742400
+medea ts --to iso -z America/Los_Angeles 1678742400
 
 # generate random data
-medea rnd -f hex 16
+medea rnd -t hex 16
 ```
 
 ## Tests
