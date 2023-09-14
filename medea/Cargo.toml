@@ -1,7 +1,15 @@
 [package]
 name = "medea"
-version = "0.1.0"
+version = "0.6.0"
+authors = ["Noah Burghardt <burghardtnoah@gmail.com>"]
+license = "MIT"
+description = "A command-line developers toolbox"
 edition = "2021"
+readme = "README.md"
+homepage = "https://github.com/haondt/medea"
+repository = "https://github.com/haondt/medea"
+keywords = ["cli", "json", "tools", "base"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
