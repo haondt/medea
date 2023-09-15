@@ -16,11 +16,20 @@ medea is a command-line developers toolbox, written in Rust. Similar to projects
 
 ## Installation
 
-#### TODO: Installation script
 
-You can grab the binary from the latest release here: https://github.com/haondt/medea/releases
+#### Option 1: Download binary
 
-Alternatively, you can clone the repository and build with Cargo.
+You can grab the binary from the latest release: https://github.com/haondt/medea/releases
+
+#### Option 2: Install with Cargo
+
+```shell
+cargo install haondt-medea
+```
+
+#### Option 3: Install manually
+
+TODO: Installation script
 
 ## Usage
 
